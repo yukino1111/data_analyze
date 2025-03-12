@@ -1,96 +1,60 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+import matplotlib.font_manager as fm
+import seaborn as sns  # 可选，用于更美观的图表
+
+# import pandas as pd
 import numpy as np
-from scipy import stats
-from scipy.stats import chi2_contingency, ttest_ind
+import scipy.stats as stats
 
+# import matplotlib.pyplot as plt
 # 1. 读取数据
-data = pd.read_csv("Student_performance_data _.csv")
+# 假设你的数据保存在一个名为 "student_data.csv" 的文件中
+font_path = "assets/fonts/PingFang-Medium.ttf"  # macOS 示例
+# font_path = 'C:\\Windows\\Fonts\\PingFang-Medium.ttf'  # Windows 示例
+font = fm.FontProperties(fname=font_path)
+plt.rcParams["axes.unicode_minus"] = False  # 解决负号显示为方块的问题
+data = pd.read_csv("./assets/Student_performance_data _.csv")
 
-# 2. 数据预处理
+# 2. 数据预处理 (可选，但通常很有用)
+#   - 检查缺失值
+#   - 转换数据类型 (例如，将分类变量转换为数值型)
+#   - 创建新的特征 (如果需要)
+
 # 检查缺失值
-print("缺失值统计:")
-print(data.isnull().sum())
+print(data.isnull().sum())  # 打印每列缺失值的数量
 
-# 处理缺失值 (如果存在)
-# data = data.dropna()  # 删除包含缺失值的行
-# data = data.fillna(data.mean())  # 用平均值填充缺失值
+# 如果有缺失值，可以选择填充或删除
+# 例如，用平均值填充 GPA 列的缺失值：
+# data['GPA'].fillna(data['GPA'].mean(), inplace=True)
 
-# 检查重复值
-print(f"重复行的数量: {data.duplicated().sum()}")
+# 将分类变量转换为数值型 (如果需要)
+# 例如，将 Gender 列转换为 0 和 1：
+# data['Gender'] = data['Gender'].map({'Male': 0, 'Female': 1})  # 如果 Gender 列是字符串
 
-# 删除重复值
-data = data.drop_duplicates()
+# 3. 分析 GPA 与其他因素的关系
 
-# 数据类型转换 (如果需要)
-# data['Age'] = data['Age'].astype(int)
+# a.  数值型变量与 GPA 的关系 (使用散点图或相关系数)
+numerical_features = [
+    "Age",
+    "StudyTimeWeekly",
+    "Absences",
+    "ParentalSupport",
+]  # 添加你认为相关的数值型特征
 
-
-# 3. 异常值检测 (Z-score 法)
-def detect_outliers_zscore(data, threshold=3):
-    z = np.abs(stats.zscore(data))
-    outlier_indices = np.where(z > threshold)
-    return outlier_indices
-
-
-numerical_features = ["Age", "StudyTimeWeekly", "Absences", "ParentalSupport"]
 for feature in numerical_features:
-    outlier_indices = detect_outliers_zscore(data[feature])
-    print(f"'{feature}' 列的异常值索引: {outlier_indices}")
-    # 可以选择删除或替换这些异常值
-    # data = data.drop(outlier_indices[0])
+    plt.figure(figsize=(8, 6))  # 设置图表大小
+    plt.scatter(data[feature], data["GPA"])
+    plt.xlabel(feature)
+    plt.ylabel("GPA")
+    plt.title(f"GPA vs. {feature}")
+    plt.show()
 
-# 4. 相关性分析
-numerical_features = ["Age", "StudyTimeWeekly", "Absences", "ParentalSupport"]
-
-# 皮尔逊相关系数
-print("\n皮尔逊相关系数:")
-for feature in numerical_features:
+    # 计算相关系数
     correlation = data[feature].corr(data["GPA"])
     print(f"{feature} 与 GPA 的相关系数: {correlation}")
 
-# 斯皮尔曼秩相关系数
-print("\n斯皮尔曼秩相关系数:")
-for feature in numerical_features:
-    correlation_spearman = data[feature].corr(data["GPA"], method="spearman")
-    print(f"{feature} 与 GPA 的斯皮尔曼秩相关系数: {correlation_spearman}")
-
-# 5. 假设检验 (卡方检验)
-categorical_features = ["Gender", "Ethnicity", "ParentalEducation", "Tutoring"]
-print("\n卡方检验:")
-for feature in categorical_features:
-    contingency_table = pd.crosstab(data[feature], data["GradeClass"])
-    chi2, p, dof, expected = chi2_contingency(contingency_table)
-    print(f"{feature} 与 GradeClass 的卡方检验:")
-    print(f"  卡方值: {chi2}")
-    print(f"  P 值: {p}")
-    # print("  期望频率:")
-    # print(expected)
-
-# 6. 假设检验 (t 检验)
-print("\nt 检验:")
-group1 = data[data["Tutoring"] == 1]["GPA"]  # 接受辅导的学生
-group2 = data[data["Tutoring"] == 0]["GPA"]  # 未接受辅导的学生
-t_statistic, p_value = ttest_ind(group1, group2)
-print(f"接受辅导与未接受辅导的学生 GPA 的 t 检验:")
-print(f"  T 统计量: {t_statistic}")
-print(f"  P 值: {p_value}")
-
-# 7. 可视化
-# 相关性热力图
-correlation_matrix = data[numerical_features + ["GPA"]].corr()
-plt.figure(figsize=(10, 8))
-sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm")
-plt.title("相关性热力图")
-plt.show()
-
-# 散点图矩阵
-sns.pairplot(data[numerical_features + ["GPA"]])
-plt.suptitle("散点图矩阵", y=1.02)  # 调整标题位置
-plt.show()
-
-# 箱线图
+# b.  类别型变量与 GPA 的关系 (使用箱线图或条形图)
 categorical_features = [
     "Gender",
     "Ethnicity",
@@ -100,71 +64,133 @@ categorical_features = [
     "Sports",
     "Music",
     "Volunteering",
-]
+]  # 添加你认为相关的类别型特征
+
 for feature in categorical_features:
     plt.figure(figsize=(8, 6))
-    sns.boxplot(x=feature, y="GPA", data=data)
+    sns.boxplot(x=feature, y="GPA", data=data)  # 使用 seaborn 的箱线图
     plt.xlabel(feature)
     plt.ylabel("GPA")
     plt.title(f"GPA vs. {feature}")
     plt.show()
 
+    # (可选) 使用条形图显示每个类别的平均 GPA
+    # mean_gpa = data.groupby(feature)["GPA"].mean()
+    # mean_gpa.plot(kind="bar")
+    # plt.ylabel("平均 GPA", fontproperties=font)
+    # plt.title(f"平均 GPA vs. {feature}", fontproperties=font)
+    # plt.show()
 
-# 蒙特卡洛模拟
-def gpa_model(study_time, parental_support, noise_std=0.1):
-    """一个简单的 GPA 模型，带有随机噪声。"""
-    # 假设 GPA = 0.1 * StudyTimeWeekly + 0.2 * ParentalSupport + 噪声
-    gpa = 0.1 * study_time + 0.2 * parental_support + np.random.normal(0, noise_std)
+# 4.  绘制 GPA 的直方图
+
+plt.figure(figsize=(8, 6))
+plt.hist(
+    data["GPA"], bins=20, color="skyblue", edgecolor="black"
+)  # 可以调整 bins 的数量
+plt.xlabel("GPA")
+plt.ylabel("Frequency")
+plt.title("GPA Distribution")
+plt.show()
+
+# 5.  (可选) 绘制 GradeClass 的直方图
+
+plt.figure(figsize=(8, 6))
+plt.hist(
+    data["GradeClass"], bins=5, color="lightgreen", edgecolor="black"
+)  # 可以调整 bins 的数量
+plt.xlabel("GradeClass")
+plt.ylabel("Frequency")
+plt.title("GradeClass Distribution")
+plt.show()
+
+# # 3. 相关系数分析
+
+# # a. 皮尔逊相关系数 (线性相关)
+pearson_corr = data[["Age", "StudyTimeWeekly", "Absences", "GPA"]].corr(
+    method="pearson"
+)
+print("皮尔逊相关系数矩阵:\n", pearson_corr)
+
+# # b. 斯皮尔曼秩相关系数 (非线性相关)
+spearman_corr = data[["Age", "StudyTimeWeekly", "Absences", "GPA"]].corr(
+    method="spearman"
+)
+print("\n斯皮尔曼秩相关系数矩阵:\n", spearman_corr)
+
+# # 4. 假设检验
+
+# # a. 卡方检验 (分类型变量相关性)
+# #   - 假设：性别 (Gender) 与 GradeClass 是否相关？
+contingency_table = pd.crosstab(data["Gender"], data["GradeClass"])
+chi2, p, dof, expected = stats.chi2_contingency(contingency_table)
+print("\n卡方检验结果:")
+print("卡方值:", chi2)
+print("p值:", p)
+print("自由度:", dof)
+print("预期频率表:\n", expected)
+
+alpha = 0.05  # 显著性水平
+if p < alpha:
+    print("拒绝原假设，性别与 GradeClass 之间存在显著相关性。")
+else:
+    print("接受原假设，性别与 GradeClass 之间不存在显著相关性。")
+
+# # b. t检验 (组间差异分析)
+# #   - 假设：不同性别 (Gender) 的学生的 GPA 是否存在显著差异？
+group1 = data[data["Gender"] == 0]["GPA"]  # 假设 0 代表一种性别
+group2 = data[data["Gender"] == 1]["GPA"]  # 假设 1 代表另一种性别
+t_statistic, p_value = stats.ttest_ind(group1, group2)
+print("\nt检验结果:")
+print("t统计量:", t_statistic)
+print("p值:", p_value)
+
+if p_value < alpha:
+    print("拒绝原假设，不同性别的学生的 GPA 存在显著差异。")
+else:
+    print("接受原假设，不同性别的学生的 GPA 不存在显著差异。")
+
+# # 5. 蒙特卡洛模拟
+
+
+# # 模拟 GPA 受 StudyTimeWeekly 和 ParentalSupport 影响
+def gpa_model(study_time, parental_support, noise_std=0.5):
+    """
+    模拟 GPA 的函数，受学习时间和父母支持的影响。
+    """
+    # 假设 GPA = 0.5 * StudyTimeWeekly + 0.3 * ParentalSupport + 噪声
+    gpa = 0.5 * study_time + 0.3 * parental_support + np.random.normal(0, noise_std)
     return gpa
 
 
-# 蒙特卡洛模拟
-def monte_carlo_simulation(num_simulations=1000):
-    """运行蒙特卡洛模拟来估计 GPA 的分布。"""
-    gpa_values = []
-    for _ in range(num_simulations):
-        # 从数据集中随机抽样 StudyTimeWeekly 和 ParentalSupport
-        sample = data.sample(n=1, replace=True)
-        study_time = sample["StudyTimeWeekly"].values[0]
-        parental_support = sample["ParentalSupport"].values[0]
-
-        # 计算 GPA
-        gpa = gpa_model(study_time, parental_support)
-        gpa_values.append(gpa)
-
-    return gpa_values
-
-
-# 运行模拟
+# # 设置模拟参数
 num_simulations = 1000
-gpa_values = monte_carlo_simulation(num_simulations)
+study_time_values = data["StudyTimeWeekly"].values
+parental_support_values = data["ParentalSupport"].values
 
-# 将结果转换为 Pandas Series 以便分析
-gpa_series = pd.Series(gpa_values)
+# 存储模拟结果
+simulated_gpa = []
 
-# 打印统计信息
-print("蒙特卡洛模拟结果:")
-print(gpa_series.describe())
+# 进行蒙特卡洛模拟
+for i in range(num_simulations):
+    # 随机选择学习时间和父母支持的值
+    index = np.random.randint(0, len(study_time_values))
+    study_time = study_time_values[index]
+    parental_support = parental_support_values[index]
 
-# 可视化结果
-import matplotlib.pyplot as plt
-import seaborn as sns
+    # 模拟 GPA
+    gpa = gpa_model(study_time, parental_support)
+    simulated_gpa.append(gpa)
 
-plt.figure(figsize=(10, 6))
-sns.histplot(gpa_series, kde=True)
-plt.title("蒙特卡洛模拟 GPA 分布")
-plt.xlabel("GPA")
-plt.ylabel("频率")
+# 分析模拟结果
+simulated_gpa = np.array(simulated_gpa)
+print("\n蒙特卡洛模拟结果:")
+print("模拟 GPA 的平均值:", simulated_gpa.mean())
+print("模拟 GPA 的标准差:", simulated_gpa.std())
+
+# 绘制模拟 GPA 的直方图
+plt.figure(figsize=(8, 6))
+plt.hist(simulated_gpa, bins=30, color="lightcoral", edgecolor="black")
+plt.xlabel("Simulated GPA")
+plt.ylabel("Frequency")
+plt.title("Monte Carlo Simulation of GPA")
 plt.show()
-
-# 8. 分析结论 (根据你的结果进行总结)
-print("\n分析结论:")
-print("  (根据你的分析结果进行总结，例如：)")
-print("  - 学习时间与 GPA 呈正相关。")
-print("  - 父母教育程度与 GPA 呈正相关。")
-print("  - 接受辅导的学生的 GPA 显著高于未接受辅导的学生。")
-print("  - ...")
-print("\n方法的局限性:")
-print("  - 相关系数只能衡量线性关系。")
-print("  - 假设检验只能说明关联性，不能说明因果关系。")
-print("  - 蒙特卡洛模拟的结果取决于模型的假设。")
