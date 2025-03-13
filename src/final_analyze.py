@@ -1,121 +1,198 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
-import seaborn as sns  # 可选，用于更美观的图表
-
-# import pandas as pd
+import seaborn as sns
 import numpy as np
 import scipy.stats as stats
+from sklearn.linear_model import LinearRegression
 
-# import matplotlib.pyplot as plt
+
 # 1. 读取数据
-# 假设你的数据保存在一个名为 "student_data.csv" 的文件中
-font_path = "assets/fonts/PingFang-Medium.ttf"  # macOS 示例
-# font_path = 'C:\\Windows\\Fonts\\PingFang-Medium.ttf'  # Windows 示例
+# 设置中文字体
+font_path = "assets/fonts/PingFang-Medium.ttf"  # 替换为你系统中存在的中文字体文件路径
 font = fm.FontProperties(fname=font_path)
 plt.rcParams["axes.unicode_minus"] = False  # 解决负号显示为方块的问题
+
 data = pd.read_csv("./assets/Student_performance_data _.csv")
 
-# 2. 数据预处理 (可选，但通常很有用)
-#   - 检查缺失值
-#   - 转换数据类型 (例如，将分类变量转换为数值型)
-#   - 创建新的特征 (如果需要)
-
-# 检查缺失值
-print(data.isnull().sum())  # 打印每列缺失值的数量
-
-# 如果有缺失值，可以选择填充或删除
-# 例如，用平均值填充 GPA 列的缺失值：
-# data['GPA'].fillna(data['GPA'].mean(), inplace=True)
-
-# 将分类变量转换为数值型 (如果需要)
-# 例如，将 Gender 列转换为 0 和 1：
-# data['Gender'] = data['Gender'].map({'Male': 0, 'Female': 1})  # 如果 Gender 列是字符串
+# 2. 数据预处理 (略，与图表修改无关)
 
 # 3. 分析 GPA 与其他因素的关系
 
-# a.  数值型变量与 GPA 的关系 (使用散点图或相关系数)
 numerical_features = [
     "Age",
     "StudyTimeWeekly",
     "Absences",
-    "ParentalSupport",
-]  # 添加你认为相关的数值型特征
-
+]
+numerical_features_cn = {
+    "Age": "年龄",
+    "StudyTimeWeekly": "每周学习时间",
+    "Absences": "缺勤次数",
+}
+parental_support_map = {0: "无", 1: "低", 2: "中等", 3: "高", 4: "非常高"}
 for feature in numerical_features:
-    plt.figure(figsize=(8, 6))  # 设置图表大小
+    plt.figure(figsize=(8, 6))
     plt.scatter(data[feature], data["GPA"])
-    plt.xlabel(feature)
-    plt.ylabel("GPA")
-    plt.title(f"GPA vs. {feature}")
+    plt.xlabel(numerical_features_cn[feature], fontproperties=font)
+    plt.ylabel("绩点", fontproperties=font)  # GPA 改为 绩点
+    plt.title(f"绩点与 {numerical_features_cn[feature]} 的关系", fontproperties=font)
+
+    if feature == "Age":
+        plt.xticks(range(int(data["Age"].min()), int(data["Age"].max()) + 1))  # 去掉 .5
+
     plt.show()
 
-    # 计算相关系数
     correlation = data[feature].corr(data["GPA"])
-    print(f"{feature} 与 GPA 的相关系数: {correlation}")
+    print(f"绩点与 {numerical_features_cn[feature]} 的相关系数: {correlation}")
 
-# b.  类别型变量与 GPA 的关系 (使用箱线图或条形图)
 categorical_features = [
     "Gender",
     "Ethnicity",
     "ParentalEducation",
+    "ParentalSupport",
     "Tutoring",
     "Extracurricular",
     "Sports",
     "Music",
     "Volunteering",
-]  # 添加你认为相关的类别型特征
+]
+
+categorical_features_cn = {
+    "Gender": "性别",
+    "Ethnicity": "种族",
+    "ParentalEducation": "父母教育程度",
+    "ParentalSupport": "父母支持程度",
+    "Tutoring": "是否辅导",
+    "Extracurricular": "是否参加课外活动",
+    "Sports": "是否参加体育活动",
+    "Music": "是否参加音乐活动",
+    "Volunteering": "是否参加志愿活动",
+}
+
+# 数据字典翻译
+gender_map = {0: "男", 1: "女"}
+ethnicity_map = {0: "高加索人", 1: "非裔美国人", 2: "亚裔", 3: "其他"}
+parental_education_map = {0: "无", 1: "高中", 2: "大学专科", 3: "学士", 4: "更高"}
+binary_map = {0: "否", 1: "是"}  # 用于二元分类变量
+
 
 for feature in categorical_features:
     plt.figure(figsize=(8, 6))
-    sns.boxplot(x=feature, y="GPA", data=data)  # 使用 seaborn 的箱线图
-    plt.xlabel(feature)
-    plt.ylabel("GPA")
-    plt.title(f"GPA vs. {feature}")
+
+    # 根据不同的特征使用不同的映射
+    if feature == "Gender":
+        data_copy = data.copy()  # 创建副本，避免修改原始数据
+        data_copy[feature] = data_copy[feature].map(gender_map)
+        category_order = list(gender_map.values())  # 确保顺序
+        ax = sns.boxplot(
+            x=feature, y="GPA", data=data_copy, order=category_order
+        )  # 保存boxplot的axes
+    elif feature == "Ethnicity":
+        data_copy = data.copy()
+        data_copy[feature] = data_copy[feature].map(ethnicity_map)
+        category_order = list(ethnicity_map.values())  # 确保顺序
+        ax = sns.boxplot(
+            x=feature, y="GPA", data=data_copy, order=category_order
+        )  # 保存boxplot的axes
+    elif feature == "ParentalEducation":
+        data_copy = data.copy()
+        data_copy[feature] = data_copy[feature].map(parental_education_map)
+        category_order = list(parental_education_map.values())  # 确保顺序
+        ax = sns.boxplot(
+            x=feature, y="GPA", data=data_copy, order=category_order
+        )  # 保存boxplot的axes
+    elif feature == "ParentalSupport":  # 添加 ParentalSupport 的处理
+        data_copy = data.copy()
+        data_copy[feature] = data_copy[feature].map(parental_support_map)
+        category_order = list(parental_support_map.values())  # 确保顺序
+        ax = sns.boxplot(
+            x=feature, y="GPA", data=data_copy, order=category_order
+        )  # 保存boxplot的axes
+    elif feature in ["Tutoring", "Extracurricular", "Sports", "Music", "Volunteering"]:
+        data_copy = data.copy()
+        data_copy[feature] = data_copy[feature].map(binary_map)
+        category_order = list(binary_map.values())  # 确保顺序
+        ax = sns.boxplot(
+            x=feature, y="GPA", data=data_copy, order=category_order
+        )  # 保存boxplot的axes
+    else:
+        ax = sns.boxplot(x=feature, y="GPA", data=data)  # 其他情况 # 保存boxplot的axes
+
+    plt.xlabel(categorical_features_cn[feature], fontproperties=font)
+    plt.ylabel("绩点", fontproperties=font)
+    plt.title(f"绩点与 {categorical_features_cn[feature]} 的关系", fontproperties=font)
+
+    # 获取当前 axes 对象
+    ax = plt.gca()  # 或者使用之前保存的 ax
+
+    # 循环遍历 x 轴上的每个标签，并设置字体属性
+    for label in ax.get_xticklabels():
+        label.set_fontproperties(font)
+
+    # 设置 x 轴刻度和标签
+    if feature in [
+        "Gender",
+        "Ethnicity",
+        "ParentalEducation",
+        "ParentalSupport",
+        "Tutoring",
+        "Extracurricular",
+        "Sports",
+        "Music",
+        "Volunteering",
+    ]:
+        ax.set_xticks(range(len(category_order)))  # 设置刻度位置
+        ax.set_xticklabels(category_order)  # 设置刻度标签，确保顺序
+
+        # 再次循环设置字体 (因为 set_xticklabels 可能会重置字体)
+        for label in ax.get_xticklabels():
+            label.set_fontproperties(font)
+
     plt.show()
 
-    # (可选) 使用条形图显示每个类别的平均 GPA
-    # mean_gpa = data.groupby(feature)["GPA"].mean()
-    # mean_gpa.plot(kind="bar")
-    # plt.ylabel("平均 GPA", fontproperties=font)
-    # plt.title(f"平均 GPA vs. {feature}", fontproperties=font)
-    # plt.show()
 
-# 4.  绘制 GPA 的直方图
-
+# 4. 绘制 GPA 的直方图
 plt.figure(figsize=(8, 6))
-plt.hist(
-    data["GPA"], bins=20, color="skyblue", edgecolor="black"
-)  # 可以调整 bins 的数量
-plt.xlabel("GPA")
-plt.ylabel("Frequency")
-plt.title("GPA Distribution")
+plt.hist(data["GPA"], bins=20, color="skyblue", edgecolor="black")
+plt.xlabel("绩点", fontproperties=font)
+plt.ylabel("频数", fontproperties=font)
+plt.title("绩点分布", fontproperties=font)
 plt.show()
 
-# 5.  (可选) 绘制 GradeClass 的直方图
-
+# 5. (可选) 绘制 GradeClass 的直方图
 plt.figure(figsize=(8, 6))
-plt.hist(
-    data["GradeClass"], bins=5, color="lightgreen", edgecolor="black"
-)  # 可以调整 bins 的数量
-plt.xlabel("GradeClass")
-plt.ylabel("Frequency")
-plt.title("GradeClass Distribution")
+plt.hist(data["GradeClass"], bins=5, color="lightgreen", edgecolor="black")
+plt.xlabel("成绩等级", fontproperties=font)
+plt.ylabel("频数", fontproperties=font)
+plt.title("成绩等级分布", fontproperties=font)
 plt.show()
 
 # # 3. 相关系数分析
 
 # # a. 皮尔逊相关系数 (线性相关)
+# 定义中文列名映射
+column_names_cn = {
+    "Age": "年龄",
+    "StudyTimeWeekly": "每周学习时间",
+    "Absences": "缺勤次数",
+    "GPA": "绩点",
+}
+
 pearson_corr = data[["Age", "StudyTimeWeekly", "Absences", "GPA"]].corr(
     method="pearson"
 )
+# 重命名列名
+pearson_corr = pearson_corr.rename(columns=column_names_cn, index=column_names_cn)
 print("皮尔逊相关系数矩阵:\n", pearson_corr)
 
 # # b. 斯皮尔曼秩相关系数 (非线性相关)
 spearman_corr = data[["Age", "StudyTimeWeekly", "Absences", "GPA"]].corr(
     method="spearman"
 )
+# 重命名列名
+spearman_corr = spearman_corr.rename(columns=column_names_cn, index=column_names_cn)
 print("\n斯皮尔曼秩相关系数矩阵:\n", spearman_corr)
+
 
 # # 4. 假设检验
 
@@ -131,9 +208,9 @@ print("预期频率表:\n", expected)
 
 alpha = 0.05  # 显著性水平
 if p < alpha:
-    print("拒绝原假设，性别与 GradeClass 之间存在显著相关性。")
+    print("拒绝原假设，性别与 成绩等级 之间存在显著相关性。")
 else:
-    print("接受原假设，性别与 GradeClass 之间不存在显著相关性。")
+    print("接受原假设，性别与 成绩等级 之间不存在显著相关性。")
 
 # # b. t检验 (组间差异分析)
 # #   - 假设：不同性别 (Gender) 的学生的 GPA 是否存在显著差异？
@@ -145,52 +222,99 @@ print("t统计量:", t_statistic)
 print("p值:", p_value)
 
 if p_value < alpha:
-    print("拒绝原假设，不同性别的学生的 GPA 存在显著差异。")
+    print("拒绝原假设，不同性别的学生的 绩点 存在显著差异。")
 else:
-    print("接受原假设，不同性别的学生的 GPA 不存在显著差异。")
+    print("接受原假设，不同性别的学生的 绩点 不存在显著差异。")
 
 # # 5. 蒙特卡洛模拟
 
 
-# # 模拟 GPA 受 StudyTimeWeekly 和 ParentalSupport 影响
-def gpa_model(study_time, parental_support, noise_std=0.5):
+# 2. 准备训练数据
+X = data[["ParentalSupport", "Absences"]]  # 特征
+y = data["GPA"]  # 目标变量
+# 3. 训练线性回归模型
+model = LinearRegression()
+model.fit(X, y)
+# 4. 获取训练好的模型参数
+base_gpa = model.intercept_  # 截距
+parental_support_effect = model.coef_[0]  # ParentalSupport 的系数
+absences_effect = model.coef_[1]  # Absences 的系数
+print("训练好的模型参数:")
+print("基础 GPA:", base_gpa)
+print("父母支持影响:", parental_support_effect)
+print("缺勤次数影响:", absences_effect)
+
+
+# 定义 gpa_model 函数 (使用训练好的参数)
+def gpa_model(parental_support, absences):
     """
-    模拟 GPA 的函数，受学习时间和父母支持的影响。
+    模拟 GPA 的函数 (使用训练好的参数)。
+    Args:
+        parental_support: 父母支持程度 (0-4)。
+        absences: 缺勤次数。
+    Returns:
+        模拟的 GPA 值 (0-4.0)。
     """
-    # 假设 GPA = 0.5 * StudyTimeWeekly + 0.3 * ParentalSupport + 噪声
-    gpa = 0.5 * study_time + 0.3 * parental_support + np.random.normal(0, noise_std)
+    # 计算 GPA
+    gpa = (
+        base_gpa
+        + parental_support_effect * parental_support
+        + absences_effect * absences
+    )
+    # 确保 GPA 在 0-4.0 范围内
+    gpa = np.clip(gpa, 0, 4.0)
     return gpa
 
 
-# # 设置模拟参数
+# 设置模拟参数
 num_simulations = 1000
-study_time_values = data["StudyTimeWeekly"].values
-parental_support_values = data["ParentalSupport"].values
-
+# 随机生成 parental_support 和 absences 的值
+parental_support_min = data["ParentalSupport"].min()
+parental_support_max = data["ParentalSupport"].max()
+absences_min = data["Absences"].min()
+absences_max = data["Absences"].max()
+simulated_parental_support = np.random.randint(
+    parental_support_min, parental_support_max + 1, num_simulations
+)
+simulated_absences = np.random.randint(absences_min, absences_max + 1, num_simulations)
 # 存储模拟结果
 simulated_gpa = []
-
+# 设置随机数种子，以确保结果可重复
+np.random.seed(42)
 # 进行蒙特卡洛模拟
 for i in range(num_simulations):
-    # 随机选择学习时间和父母支持的值
-    index = np.random.randint(0, len(study_time_values))
-    study_time = study_time_values[index]
-    parental_support = parental_support_values[index]
-
+    # 使用随机生成的 parental_support 和 absences 值
+    parental_support = simulated_parental_support[i]
+    absences = simulated_absences[i]
     # 模拟 GPA
-    gpa = gpa_model(study_time, parental_support)
+    gpa = gpa_model(parental_support, absences)
     simulated_gpa.append(gpa)
-
 # 分析模拟结果
 simulated_gpa = np.array(simulated_gpa)
 print("\n蒙特卡洛模拟结果:")
-print("模拟 GPA 的平均值:", simulated_gpa.mean())
-print("模拟 GPA 的标准差:", simulated_gpa.std())
-
-# 绘制模拟 GPA 的直方图
-plt.figure(figsize=(8, 6))
+print("模拟 绩点 的平均值:", simulated_gpa.mean())
+print("模拟 绩点 的标准差:", simulated_gpa.std())
+# 绘制图表
+plt.figure(figsize=(18, 6))  # 调整整体图形大小
+# 1. 父母支持程度 vs. GPA
+plt.subplot(1, 3, 1)
+plt.scatter(simulated_parental_support, simulated_gpa, color="skyblue")
+plt.xlabel("模拟父母支持程度", fontproperties=font)
+plt.ylabel("模拟绩点", fontproperties=font)
+plt.title("父母支持程度 vs. 模拟绩点", fontproperties=font)
+plt.xticks(range(parental_support_min, parental_support_max + 1))
+# 2. 缺勤次数 vs. GPA
+plt.subplot(1, 3, 2)
+plt.scatter(simulated_absences, simulated_gpa, color="lightgreen")
+plt.xlabel("模拟缺勤次数", fontproperties=font)
+plt.ylabel("模拟绩点", fontproperties=font)
+plt.title("缺勤次数 vs. 模拟绩点", fontproperties=font)
+# 3. 模拟 GPA 的频率分布
+plt.subplot(1, 3, 3)
 plt.hist(simulated_gpa, bins=30, color="lightcoral", edgecolor="black")
-plt.xlabel("Simulated GPA")
-plt.ylabel("Frequency")
-plt.title("Monte Carlo Simulation of GPA")
+plt.xlabel("模拟绩点", fontproperties=font)
+plt.ylabel("频数", fontproperties=font)
+plt.title("模拟绩点的频率分布", fontproperties=font)
+plt.xlim(0, 4.0)  # 设置 x 轴范围为 0-4.0
+plt.tight_layout()
 plt.show()
