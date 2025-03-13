@@ -308,14 +308,14 @@ plt.subplot(2, 3, 1)  # 2 行 3 列，第一个子图
 plt.scatter(simulated_parental_support, simulated_gpa, color="skyblue")
 plt.xlabel("模拟父母支持程度", fontproperties=font)
 plt.ylabel("模拟绩点", fontproperties=font)
-plt.title("父母支持程度对 GPA 的影响", fontproperties=font)
+plt.title("父母支持程度对 绩点 的影响", fontproperties=font)
 plt.xticks(sorted(np.unique(simulated_parental_support)))  # 确保 x 轴刻度是整数
 # 2. 缺勤次数对 GPA 的影响 (散点图)
 plt.subplot(2, 3, 2)  # 2 行 3 列，第二个子图
 plt.scatter(simulated_absences, simulated_gpa, color="lightgreen")
 plt.xlabel("模拟缺勤次数", fontproperties=font)
 plt.ylabel("模拟绩点", fontproperties=font)
-plt.title("缺勤次数对 GPA 的影响", fontproperties=font)
+plt.title("缺勤次数对 绩点 的影响", fontproperties=font)
 # 3. 模拟的父母支持程度 (频率直方图)
 plt.subplot(2, 3, 4)  # 2 行 3 列，第四个子图
 plt.hist(
