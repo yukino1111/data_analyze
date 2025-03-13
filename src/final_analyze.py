@@ -268,15 +268,22 @@ def gpa_model(parental_support, absences):
 
 # 设置模拟参数
 num_simulations = 1000
-# 随机生成 parental_support 和 absences 的值
-parental_support_min = data["ParentalSupport"].min()
-parental_support_max = data["ParentalSupport"].max()
-absences_min = data["Absences"].min()
-absences_max = data["Absences"].max()
-simulated_parental_support = np.random.randint(
-    parental_support_min, parental_support_max + 1, num_simulations
+# 5. 根据源文件分布生成模拟数据
+# 5.1 计算 ParentalSupport 的频率分布
+parental_support_counts = data["ParentalSupport"].value_counts(normalize=True)
+parental_support_values = parental_support_counts.index.to_numpy()
+parental_support_probabilities = parental_support_counts.to_numpy()
+# 5.2 计算 Absences 的频率分布
+absences_counts = data["Absences"].value_counts(normalize=True)
+absences_values = absences_counts.index.to_numpy()
+absences_probabilities = absences_counts.to_numpy()
+# 5.3 使用计算出的概率进行抽样
+simulated_parental_support = np.random.choice(
+    parental_support_values, size=num_simulations, p=parental_support_probabilities
 )
-simulated_absences = np.random.randint(absences_min, absences_max + 1, num_simulations)
+simulated_absences = np.random.choice(
+    absences_values, size=num_simulations, p=absences_probabilities
+)
 # 存储模拟结果
 simulated_gpa = []
 # 设置随机数种子，以确保结果可重复
@@ -294,27 +301,47 @@ simulated_gpa = np.array(simulated_gpa)
 print("\n蒙特卡洛模拟结果:")
 print("模拟 绩点 的平均值:", simulated_gpa.mean())
 print("模拟 绩点 的标准差:", simulated_gpa.std())
-# 绘制图表
-plt.figure(figsize=(18, 6))  # 调整整体图形大小
-# 1. 父母支持程度 vs. GPA
-plt.subplot(1, 3, 1)
+# 绘制频率直方图和散点图
+plt.figure(figsize=(20, 10))  # 调整整体图形大小
+# 1. 父母支持程度对 GPA 的影响 (散点图)
+plt.subplot(2, 3, 1)  # 2 行 3 列，第一个子图
 plt.scatter(simulated_parental_support, simulated_gpa, color="skyblue")
 plt.xlabel("模拟父母支持程度", fontproperties=font)
 plt.ylabel("模拟绩点", fontproperties=font)
-plt.title("父母支持程度 vs. 模拟绩点", fontproperties=font)
-plt.xticks(range(parental_support_min, parental_support_max + 1))
-# 2. 缺勤次数 vs. GPA
-plt.subplot(1, 3, 2)
+plt.title("父母支持程度对 GPA 的影响", fontproperties=font)
+plt.xticks(sorted(np.unique(simulated_parental_support)))  # 确保 x 轴刻度是整数
+# 2. 缺勤次数对 GPA 的影响 (散点图)
+plt.subplot(2, 3, 2)  # 2 行 3 列，第二个子图
 plt.scatter(simulated_absences, simulated_gpa, color="lightgreen")
 plt.xlabel("模拟缺勤次数", fontproperties=font)
 plt.ylabel("模拟绩点", fontproperties=font)
-plt.title("缺勤次数 vs. 模拟绩点", fontproperties=font)
-# 3. 模拟 GPA 的频率分布
-plt.subplot(1, 3, 3)
+plt.title("缺勤次数对 GPA 的影响", fontproperties=font)
+# 3. 模拟的父母支持程度 (频率直方图)
+plt.subplot(2, 3, 4)  # 2 行 3 列，第四个子图
+plt.hist(
+    simulated_parental_support,
+    bins=len(np.unique(simulated_parental_support)),
+    color="skyblue",
+    edgecolor="black",
+)
+plt.xlabel("模拟父母支持程度", fontproperties=font)
+plt.ylabel("频数", fontproperties=font)
+plt.title("模拟父母支持程度的频率分布", fontproperties=font)
+plt.xticks(sorted(np.unique(simulated_parental_support)))  # 确保 x 轴刻度是整数
+# 4. 模拟的缺勤次数 (频率直方图)
+plt.subplot(2, 3, 5)  # 2 行 3 列，第五个子图
+plt.hist(
+    simulated_absences, bins=30, color="lightgreen", edgecolor="black"
+)  # bins 可以根据实际情况调整
+plt.xlabel("模拟缺勤次数", fontproperties=font)
+plt.ylabel("频数", fontproperties=font)
+plt.title("模拟缺勤次数的频率分布", fontproperties=font)
+# 5. 模拟的 GPA (频率直方图)
+plt.subplot(2, 3, 6)  # 2 行 3 列，第六个子图
 plt.hist(simulated_gpa, bins=30, color="lightcoral", edgecolor="black")
 plt.xlabel("模拟绩点", fontproperties=font)
 plt.ylabel("频数", fontproperties=font)
 plt.title("模拟绩点的频率分布", fontproperties=font)
 plt.xlim(0, 4.0)  # 设置 x 轴范围为 0-4.0
-plt.tight_layout()
+plt.tight_layout()  # 自动调整子图参数，使之填充整个图像区域
 plt.show()
