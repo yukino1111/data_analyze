@@ -34,7 +34,6 @@ def descriptive_stats(data):
         "Sports",
         "Music",
         "Volunteering",
-        "GradeClass",
     ]
     numerical_features = ["Age", "StudyTimeWeekly", "Absences", "GPA"]
     # 创建一个空的 DataFrame 来存储结果
@@ -130,7 +129,17 @@ def detect_outliers_zscore(data, threshold=3):
     outlier_indices = np.where(z > threshold)
     return outlier_indices
 
-
+def show_gpa(data):
+    # GPA 分布
+    plt.figure(figsize=(10, 6))
+    sns.histplot(data["GPA"], kde=True)
+    plt.title("GPA分布", fontproperties=font)
+    plt.xlabel("GPA", fontproperties=font)
+    plt.ylabel("频率", fontproperties=font)
+    ax = plt.gca()
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontproperties(font)
+    plt.show()
 def calculate_correlations(data):
 
     # Calculate Pearson correlation
@@ -544,8 +553,10 @@ def show_regression_mc(data):
 if __name__ == "__main__":
     data = pd.read_csv("./assets/Student_performance_data _.csv")
     data = data.drop("StudentID", axis=1)
+    data = data.drop("GradeClass", axis=1)
     # data=clean_wash(data)
     descriptive_stats(data)
+    show_gpa(data)
     show_correlations(data)
     analyze_gpa_factors(data)
     show_standard_test()
