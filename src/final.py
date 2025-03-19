@@ -140,6 +140,16 @@ def show_gpa(data):
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontproperties(font)
     plt.show()
+    # 计算 GPA 的统计量
+    gpa_mean = data["GPA"].mean()
+    gpa_std = data["GPA"].std()
+    gpa_ci = np.percentile(data["GPA"], [2.5, 97.5])
+    print("\nGPA统计量：")
+    print(f"  GPA均值: {gpa_mean:.3f}")
+    print(f"  GPA标准差: {gpa_std:.3f}")
+    print(f"  GPA的95%置信区间: [{gpa_ci[0]:.3f}, {gpa_ci[1]:.3f}]")
+
+
 def calculate_correlations(data):
 
     # Calculate Pearson correlation
@@ -283,15 +293,23 @@ def perform_t_test(data, variable):
     return t_statistic, p_value
 
 
-def perform_anova_test(data, variable, group_variable="GPA"):
+def perform_anova_test(data, variable, group_variable="GPA", num_bins=3):
+    # 检查变量是否是数值类型 且 不是 ParentalSupport
+    if pd.api.types.is_numeric_dtype(data[variable]) and variable != "ParentalSupport":
+        # 如果是数值类型且不是 ParentalSupport，则进行分组
+        temp_variable = variable + "_Category"  # 临时变量名
+        data[temp_variable] = pd.cut(
+            data[variable], bins=num_bins, labels=False
+        )  # 使用数字标签
+    else:
+        temp_variable = variable  # 使用原始变量名
     # 获取不同组的数据
-    groups = data[variable].unique()
-    group_data = [data[data[variable] == g][group_variable] for g in groups]
-
+    groups = data[temp_variable].unique()
+    group_data = [data[data[temp_variable] == g][group_variable] for g in groups]
     # 执行 ANOVA
     f_statistic, p_value = f_oneway(*group_data)
 
-    print(f"{group_variable}和{variable}的ANOVA结果：")
+    print(f"{group_variable}和{variable}的ANOVA检验结果：")
     print(f"  F统计量: {f_statistic:.3f}")
     print(f"  P值: {p_value:.3f}")
 
@@ -308,7 +326,6 @@ def perform_kruskal_test(data, variable, group_variable="GPA"):
     # 获取不同组的数据
     groups = data[variable].unique()
     group_data = [data[data[variable] == g][group_variable] for g in groups]
-
     # 执行 Kruskal-Wallis H 检验
     h_statistic, p_value = kruskal(*group_data)
 
@@ -366,15 +383,15 @@ def show_chi2_test(data):
 def show_t_test(data):
     print("\nt检验：")
     perform_t_test(data, "Absences")
-    perform_t_test(data, "ParentalSupport")
+    # perform_t_test(data, "ParentalSupport")
     perform_t_test(data, "StudyTimeWeekly")
 
 
 def show_anova_test(data):
     print("\nANOVA检验：")
     perform_anova_test(data.copy(), "Absences")
-    # perform_anova_test(data.copy(), "ParentalSupport")
-    # perform_anova_test(data.copy(), "StudyTimeWeekly")
+    perform_anova_test(data.copy(), "ParentalSupport")
+    perform_anova_test(data.copy(), "StudyTimeWeekly")
 
 
 def show_kruskal_test(data):
@@ -398,8 +415,8 @@ def show_standard_test():
 
 def show_external_test():
     show_anova_test(data)
-    show_kruskal_test(data)
-    show_mannwhitneyu_test(data)
+    # show_kruskal_test(data)
+    # show_mannwhitneyu_test(data)
 
 
 def perform_linear_regression_mc(data, n_simulations=20000, use_all_variables=True):
@@ -450,7 +467,8 @@ def perform_linear_regression_mc(data, n_simulations=20000, use_all_variables=Tr
     print(f"线性回归蒙特卡洛模拟结果 (模拟次数: {n_simulations}){title_suffix}:")
     print(f"  模拟GPA均值: {simulated_gpas.mean():.3f}")
     print(f"  模拟GPA标准差: {simulated_gpas.std():.3f}")
-    print(f"  模拟GPA的95%置信区间: {np.percentile(simulated_gpas, [2.5, 97.5])}")
+    s_gpa_ci=np.percentile(simulated_gpas, [2.5, 97.5])
+    print(f"  模拟GPA的95%置信区间: [{s_gpa_ci[0]:.3f}, {s_gpa_ci[1]:.3f}]")
 
     plt.figure(figsize=(10, 6))
     sns.histplot(simulated_gpas, kde=True)
@@ -541,13 +559,13 @@ def perform_polynomial_regression_mc(
 def show_regression_mc(data):
     print("\n蒙特卡洛模拟：")
     # 线性回归 (仅使用 Absences)
-    perform_linear_regression_mc(data.copy(), use_all_variables=False)
+    # perform_linear_regression_mc(data.copy(), use_all_variables=False)
     # 线性回归 (使用Absences, StudyTimeWeekly, ParentalSupport)
     perform_linear_regression_mc(data.copy(), use_all_variables=True)
     # 多项式回归 (仅使用 Absences, 阶数=2)
-    perform_polynomial_regression_mc(data.copy(), degree=2, use_all_variables=False)
+    # perform_polynomial_regression_mc(data.copy(), degree=2, use_all_variables=False)
     # 多项式回归 (使用Absences, StudyTimeWeekly, ParentalSupport, 阶数=2)
-    perform_polynomial_regression_mc(data.copy(), degree=2, use_all_variables=True)
+    # perform_polynomial_regression_mc(data.copy(), degree=2, use_all_variables=True)
 
 
 if __name__ == "__main__":
