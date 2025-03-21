@@ -419,6 +419,13 @@ def show_external_test():
     # show_mannwhitneyu_test(data)
 
 
+def smooth_clip(x, lower, upper, smoothness=1.0):
+    """使用 sigmoid 函数平滑地将值限制在 lower 和 upper 之间."""
+    return lower + (upper - lower) / (
+        1 + np.exp(-smoothness * (x - (lower + upper) / 2))
+    )
+
+
 def perform_linear_regression_mc(data, n_simulations=20000, use_all_variables=True):
     # 1. 定义变量的概率分布
     absences_mean = data["Absences"].mean()
@@ -458,7 +465,8 @@ def perform_linear_regression_mc(data, n_simulations=20000, use_all_variables=Tr
             input_df = pd.DataFrame([[absences_sample]], columns=variables)
 
         gpa_prediction = model.predict(input_df)[0]
-        gpa_prediction = np.clip(gpa_prediction, 0, 4.0)  # 截断
+        # gpa_prediction = np.clip(gpa_prediction, 0, 4.0)  # 截断
+        gpa_prediction = smooth_clip(gpa_prediction, 0, 4.0)
         simulated_gpas.append(gpa_prediction)
 
     # 4. 分析模拟结果
@@ -527,7 +535,8 @@ def perform_polynomial_regression_mc(
 
         input_poly = poly.transform(input_df)  # 转换
         gpa_prediction = model.predict(input_poly)[0]
-        gpa_prediction = np.clip(gpa_prediction, 0, 4.0)  # 截断
+        # gpa_prediction = np.clip(gpa_prediction, 0, 4.0)  # 截断
+        gpa_prediction = smooth_clip(gpa_prediction, 0, 4.0)
         simulated_gpas.append(gpa_prediction)
 
     # 4. 分析模拟结果
@@ -538,7 +547,8 @@ def perform_polynomial_regression_mc(
     )
     print(f"  模拟GPA均值: {simulated_gpas.mean():.3f}")
     print(f"  模拟GPA标准差: {simulated_gpas.std():.3f}")
-    print(f"  模拟GPA的95%置信区间: {np.percentile(simulated_gpas, [2.5, 97.5])}")
+    s_gpa_ci = np.percentile(simulated_gpas, [2.5, 97.5])
+    print(f"  模拟GPA的95%置信区间: [{s_gpa_ci[0]:.3f}, {s_gpa_ci[1]:.3f}]")
 
     plt.figure(figsize=(10, 6))
     sns.histplot(simulated_gpas, kde=True)
@@ -573,10 +583,10 @@ if __name__ == "__main__":
     data = data.drop("StudentID", axis=1)
     data = data.drop("GradeClass", axis=1)
     # data=clean_wash(data)
-    descriptive_stats(data)
-    show_gpa(data)
-    show_correlations(data)
-    analyze_gpa_factors(data)
-    show_standard_test()
-    show_external_test()
+    # descriptive_stats(data)
+    # show_gpa(data)
+    # show_correlations(data)
+    # analyze_gpa_factors(data)
+    # show_standard_test()
+    # show_external_test()
     show_regression_mc(data)
