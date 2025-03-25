@@ -19,23 +19,24 @@ font_path = "assets/fonts/PingFang-Medium.ttf"  # 替换为你系统中存在的
 font = fm.FontProperties(fname=font_path)
 plt.rcParams["axes.unicode_minus"] = False  # 解决负号显示为方块的问题
 plt.rcParams["font.sans-serif"] = ["SimHei"]  # 用来正常显示中文标签
+categorical_features = [
+    "Gender",
+    "Ethnicity",
+    "ParentalEducation",
+    "Tutoring",
+    "ParentalSupport",
+    "Extracurricular",
+    "Sports",
+    "Music",
+    "Volunteering",
+]
+numerical_features = ["Age", "StudyTimeWeekly", "Absences", "GPA"]
 
 
 def descriptive_stats(data):
 
     # 定义离散型和非离散型变量
-    categorical_features = [
-        "Gender",
-        "Ethnicity",
-        "ParentalEducation",
-        "Tutoring",
-        "ParentalSupport",
-        "Extracurricular",
-        "Sports",
-        "Music",
-        "Volunteering",
-    ]
-    numerical_features = ["Age", "StudyTimeWeekly", "Absences", "GPA"]
+
     # 创建一个空的 DataFrame 来存储结果
     variable_info = pd.DataFrame(columns=["变量名", "类型", "数据类型"])
     # 遍历所有列
@@ -151,7 +152,8 @@ def descriptive_stats(data):
         sns.boxplot(y=data[col])
         plt.title(f"{col}的箱线图")
     plt.tight_layout()
-    plt.show() 
+    plt.show()
+
 
 def clean_wash(data):
     # 处理缺失值 (如果存在)
@@ -178,6 +180,7 @@ def detect_outliers_zscore(data, threshold=3):
     z = np.abs(stats.zscore(data))
     outlier_indices = np.where(z > threshold)
     return outlier_indices
+
 
 def show_gpa(data):
     # GPA 分布
@@ -267,15 +270,16 @@ def analyze_gpa_factors(data):
 def perform_chi2_test(data, variable):
     # 将 GPA 分类 (例如，高、中、低、优)
     data["GPA_Category"] = pd.cut(
-        data["GPA"], bins=[0, 1, 2, 3, 4], labels=["差", "中", "良", "优"]
+        data["GPA"], bins=[0, 2, 3, 4], labels=["差", "中", "优"]
     )
     # 检查变量是分类变量还是连续变量
-    if pd.api.types.is_numeric_dtype(data[variable]):
+    if variable in numerical_features:
         # 如果是连续变量，则进行离散化
-        data[variable + "_Category"] = pd.cut(
-            data[variable], bins=5, labels=["很低", "低", "中", "高", "很高"]
+        data[variable + "_Category"] = pd.qcut(
+            data[variable], q=3, labels=["低", "中", "高"]
         )
         variable_to_use = variable + "_Category"
+        print(variable_to_use)
     else:
         variable_to_use = variable
     # 创建列联表
@@ -310,8 +314,8 @@ def perform_chi2_test(data, variable):
     chi2, p, dof, expected = chi2_contingency(contingency_table)
     print(f"GPA和{variable}的卡方检验结果：")
     print(f"  卡方统计量: {chi2:.3f}")
-    print(f"  P值: {p:.3f}")
-    print(f"  自由度: {dof}")
+    print(f"  P值: {p}")
+    # print(f"  自由度: {dof}")
     # print(f"  期望频数:\n{expected}")  # 打印期望频数矩阵，可选
     alpha = 0.05  # 显著性水平
     if p < alpha:
@@ -334,7 +338,7 @@ def perform_t_test(data, variable):
     t_statistic, p_value = ttest_ind(group1, group2)
     print(f"GPA和{variable}的t检验结果：")
     print(f"  T 统计量: {t_statistic:.3f}")
-    print(f"  P 值: {p_value:.3f}")
+    print(f"  P 值: {p_value}")
     alpha = 0.05  # 显著性水平
     if p_value < alpha:
         print(f"  结论：GPA在{variable}的两组之间存在显著差异。")
@@ -361,7 +365,7 @@ def perform_anova_test(data, variable, group_variable="GPA", num_bins=3):
 
     print(f"{group_variable}和{variable}的ANOVA检验结果：")
     print(f"  F统计量: {f_statistic:.3f}")
-    print(f"  P值: {p_value:.3f}")
+    print(f"  P值: {p_value}")
 
     alpha = 0.05  # 显著性水平
     if p_value < alpha:
@@ -381,7 +385,7 @@ def perform_kruskal_test(data, variable, group_variable="GPA"):
 
     print(f"{group_variable}和{variable}的Kruskal-Wallis H检验结果：")
     print(f"  H统计量: {h_statistic:.3f}")
-    print(f"  P值: {p_value:.3f}")
+    print(f"  P值: {p_value}")
 
     alpha = 0.05  # 显著性水平
     if p_value < alpha:
@@ -476,7 +480,7 @@ def smooth_clip(x, lower, upper, smoothness=1.0):
     )
 
 
-def perform_linear_regression_mc(data, n_simulations=20000, use_all_variables=True):
+def perform_linear_regression_mc(data, n_simulations=2400, use_all_variables=True):
     # 1. 定义变量的概率分布
     absences_mean = data["Absences"].mean()
     absences_std = data["Absences"].std()
@@ -525,7 +529,7 @@ def perform_linear_regression_mc(data, n_simulations=20000, use_all_variables=Tr
     print(f"线性回归蒙特卡洛模拟结果 (模拟次数: {n_simulations}){title_suffix}:")
     print(f"  模拟GPA均值: {simulated_gpas.mean():.3f}")
     print(f"  模拟GPA标准差: {simulated_gpas.std():.3f}")
-    s_gpa_ci=np.percentile(simulated_gpas, [2.5, 97.5])
+    s_gpa_ci = np.percentile(simulated_gpas, [2.5, 97.5])
     print(f"  模拟GPA的95%置信区间: [{s_gpa_ci[0]:.3f}, {s_gpa_ci[1]:.3f}]")
 
     plt.figure(figsize=(10, 6))
@@ -619,7 +623,7 @@ def perform_polynomial_regression_mc(
 def show_regression_mc(data):
     print("\n蒙特卡洛模拟：")
     # 线性回归 (仅使用 Absences)
-    # perform_linear_regression_mc(data.copy(), use_all_variables=False)
+    perform_linear_regression_mc(data.copy(), use_all_variables=False)
     # 线性回归 (使用Absences, StudyTimeWeekly, ParentalSupport)
     perform_linear_regression_mc(data.copy(), use_all_variables=True)
     # 多项式回归 (仅使用 Absences, 阶数=2)
@@ -633,10 +637,10 @@ if __name__ == "__main__":
     data = data.drop("StudentID", axis=1)
     data = data.drop("GradeClass", axis=1)
     # data=clean_wash(data)
-    descriptive_stats(data)
-    show_gpa(data)
-    show_correlations(data)
-    analyze_gpa_factors(data)
-    show_standard_test()
-    show_external_test()
+    # descriptive_stats(data)
+    # show_gpa(data)
+    # show_correlations(data)
+    # analyze_gpa_factors(data)
+    # show_standard_test()
+    # show_external_test()
     show_regression_mc(data)
