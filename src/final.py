@@ -18,7 +18,7 @@ from sklearn.preprocessing import PolynomialFeatures
 font_path = "assets/fonts/PingFang-Medium.ttf"  # 替换为你系统中存在的中文字体文件路径
 font = fm.FontProperties(fname=font_path)
 plt.rcParams["axes.unicode_minus"] = False  # 解决负号显示为方块的问题
-plt.rcParams["font.family"] = "SimHei"
+plt.rcParams["font.sans-serif"] = ["SimHei"]  # 用来正常显示中文标签
 
 
 def descriptive_stats(data):
@@ -102,6 +102,56 @@ def descriptive_stats(data):
     # 检查重复值
     print(f"\n重复行的数量: \n{data.duplicated().sum()}")
 
+    # 异常值检测 (考虑已知范围)
+    print("\n异常值检测 (基于已知范围):")
+    for feature in numerical_features + categorical_features:
+        if feature == "Age":
+            min_val, max_val = 15, 18
+        elif feature == "StudyTimeWeekly":
+            min_val, max_val = 0, 20
+        elif feature == "Absences":
+            min_val, max_val = 0, 30
+        elif feature == "GPA":
+            min_val, max_val = 0, 4.0  # Corrected GPA range
+        elif feature == "Gender":
+            min_val, max_val = 0, 1
+        elif feature == "Ethnicity":
+            min_val, max_val = 0, 3
+        elif feature == "ParentalEducation":
+            min_val, max_val = 0, 4
+        elif feature == "Tutoring":
+            min_val, max_val = 0, 1
+        elif feature == "ParentalSupport":
+            min_val, max_val = 0, 4
+        elif feature == "Extracurricular":
+            min_val, max_val = 0, 1
+        elif feature == "Sports":
+            min_val, max_val = 0, 1
+        elif feature == "Music":
+            min_val, max_val = 0, 1
+        elif feature == "Volunteering":
+            min_val, max_val = 0, 1
+        else:
+            min_val, max_val = (
+                data[feature].min(),
+                data[feature].max(),
+            )  # 如果没有明确范围，则使用数据的最小值和最大值
+        outliers = data[(data[feature] < min_val) | (data[feature] > max_val)][feature]
+        if not outliers.empty:
+            print(f"{feature} 中的异常值: \n{outliers}")
+        else:
+            print(f"{feature} 中没有发现超出范围的异常值")
+
+    numeric_cols = data.columns
+    num_cols = len(numeric_cols)
+    n_rows = (num_cols + 2) // 3  # 向上取整，确保有足够的子图位置
+    plt.figure(figsize=(15, n_rows * 4))  # 动态调整图表高度
+    for i, col in enumerate(numeric_cols):
+        plt.subplot(n_rows, 3, i + 1)  # 注意这里是i+1而不是i
+        sns.boxplot(y=data[col])
+        plt.title(f"{col}的箱线图")
+    plt.tight_layout()
+    plt.show() 
 
 def clean_wash(data):
     # 处理缺失值 (如果存在)
@@ -583,10 +633,10 @@ if __name__ == "__main__":
     data = data.drop("StudentID", axis=1)
     data = data.drop("GradeClass", axis=1)
     # data=clean_wash(data)
-    # descriptive_stats(data)
-    # show_gpa(data)
-    # show_correlations(data)
-    # analyze_gpa_factors(data)
-    # show_standard_test()
-    # show_external_test()
+    descriptive_stats(data)
+    show_gpa(data)
+    show_correlations(data)
+    analyze_gpa_factors(data)
+    show_standard_test()
+    show_external_test()
     show_regression_mc(data)
