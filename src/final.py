@@ -14,6 +14,7 @@ from tabulate import tabulate
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import MinMaxScaler
 
 font_path = "assets/fonts/PingFang-Medium.ttf"  # 替换为你系统中存在的中文字体文件路径
 font = fm.FontProperties(fname=font_path)
@@ -25,13 +26,28 @@ categorical_features = [
     "Ethnicity",
     "ParentalEducation",
     "Tutoring",
-    "ParentalSupport",
+    "ParentalInvolvement",
     "Extracurricular",
     "Sports",
     "Music",
     "Volunteering",
 ]
 numerical_features = ["StudyTimeWeekly", "Absences", "GPA"]
+features = ["StudyTimeWeekly", "Absences"]
+
+
+def normalize_numerical_features(df):
+
+    scaler = MinMaxScaler()
+    # 确保要归一化的特征确实存在于 DataFrame 中
+    features_to_normalize = [col for col in features if col in df.columns]
+    if not features_to_normalize:
+        return df  
+    df_normalized = df.copy()
+    df_normalized[features_to_normalize] = scaler.fit_transform(
+        df_normalized[features_to_normalize]
+    )
+    return df_normalized
 
 
 def descriptive_stats(data):
@@ -97,7 +113,7 @@ def descriptive_stats(data):
             min_val, max_val = 0, 4
         elif feature == "Tutoring":
             min_val, max_val = 0, 1
-        elif feature == "ParentalSupport":
+        elif feature == "ParentalInvolvement":
             min_val, max_val = 0, 4
         elif feature == "Extracurricular":
             min_val, max_val = 0, 1
@@ -130,92 +146,7 @@ def descriptive_stats(data):
     plt.savefig("./assets/pic/箱型图.png")
     plt.show()
 
-
-def clean_wash(data):
-    # 处理缺失值 (如果存在)
-    data["StudyTimeWeekly"] = data["StudyTimeWeekly"].fillna(
-        data["StudyTimeWeekly"].mean()
-    )
-    data["GPA"] = data["GPA"].fillna(data["GPA"].mean())
-    cols_to_drop = [
-        col for col in data.columns if col not in ["StudyTimeWeekly", "GPA"]
-    ]
-    # 遍历要删除的列，删除包含缺失值的行
-    for col in cols_to_drop:
-        data.dropna(subset=[col], inplace=True)
-
-    # 打印处理后的缺失值统计
-    print("\n缺失值统计:")
-    print(data.isnull().sum())
-    feature_ranges = {
-        "Age": (15, 18),
-        "StudyTimeWeekly": (0, 20),
-        "Absences": (0, 30),
-        "GPA": (0, 4.0),
-        "Gender": (0, 1),
-        "Ethnicity": (0, 3),
-        "ParentalEducation": (0, 4),
-        "Tutoring": (0, 1),
-        "ParentalSupport": (0, 4),
-        "Extracurricular": (0, 1),
-        "Sports": (0, 1),
-        "Music": (0, 1),
-        "Volunteering": (0, 1),
-    }
-
-    for feature in feature_ranges:
-        min_val, max_val = feature_ranges[feature]
-        outliers = data[(data[feature] < min_val) | (data[feature] > max_val)][feature]
-        if not outliers.empty:
-            if feature in ["StudyTimeWeekly", "GPA"]:
-                # 使用 .loc 和 Min-Max 缩放处理异常值
-                data.loc[:, feature] = data[feature].clip(min_val, max_val)
-            else:
-                # 删除包含异常值的行
-                data = data[~data[feature].isin(outliers)]
-    print("\n异常值检测 (基于已知范围):")
-    for feature in numerical_features + categorical_features:
-        if feature == "Age":
-            min_val, max_val = 15, 18
-        elif feature == "StudyTimeWeekly":
-            min_val, max_val = 0, 20
-        elif feature == "Absences":
-            min_val, max_val = 0, 30
-        elif feature == "GPA":
-            min_val, max_val = 0, 4.0  # Corrected GPA range
-        elif feature == "Gender":
-            min_val, max_val = 0, 1
-        elif feature == "Ethnicity":
-            min_val, max_val = 0, 3
-        elif feature == "ParentalEducation":
-            min_val, max_val = 0, 4
-        elif feature == "Tutoring":
-            min_val, max_val = 0, 1
-        elif feature == "ParentalSupport":
-            min_val, max_val = 0, 4
-        elif feature == "Extracurricular":
-            min_val, max_val = 0, 1
-        elif feature == "Sports":
-            min_val, max_val = 0, 1
-        elif feature == "Music":
-            min_val, max_val = 0, 1
-        elif feature == "Volunteering":
-            min_val, max_val = 0, 1
-        else:
-            min_val, max_val = (
-                data[feature].min(),
-                data[feature].max(),
-            )  # 如果没有明确范围，则使用数据的最小值和最大值
-        outliers = data[(data[feature] < min_val) | (data[feature] > max_val)][feature]
-        if not outliers.empty:
-            print(f"{feature} 中的异常值: \n{outliers}")
-        else:
-            print(f"{feature} 中没有发现超出范围的异常值")
-
-    return data
-
-
-def show_data(data):
+def describe_stats(data):
     # 统计离散型变量
     print("\n离散型变量统计:")
     for feature in categorical_features:
@@ -268,6 +199,88 @@ def show_data(data):
     plt.savefig("./assets/pic/分布.png")
     plt.show()
 
+def clean_wash(data):
+    # 处理缺失值 (如果存在)
+    data["Age"] = data["Age"].fillna(data["Age"].mean())
+    cols_to_drop = [
+        col for col in data.columns if col not in ["Age"]
+    ]
+    # 遍历要删除的列，删除包含缺失值的行
+    for col in cols_to_drop:
+        data.dropna(subset=[col], inplace=True)
+
+    # 打印处理后的缺失值统计
+    print("\n缺失值统计:")
+    print(data.isnull().sum())
+    feature_ranges = {
+        "Age": (15, 18),
+        "StudyTimeWeekly": (0, 20),
+        "Absences": (0, 30),
+        "GPA": (0, 4.0),
+        "Gender": (0, 1),
+        "Ethnicity": (0, 3),
+        "ParentalEducation": (0, 4),
+        "Tutoring": (0, 1),
+        "ParentalInvolvement": (0, 4),
+        "Extracurricular": (0, 1),
+        "Sports": (0, 1),
+        "Music": (0, 1),
+        "Volunteering": (0, 1),
+    }
+
+    for feature in feature_ranges:
+        min_val, max_val = feature_ranges[feature]
+        outliers = data[(data[feature] < min_val) | (data[feature] > max_val)][feature]
+        if not outliers.empty:
+            if feature in ["Age"]:
+                # 使用 .loc 和 Min-Max 缩放处理异常值
+                data.loc[:, feature] = data[feature].clip(min_val, max_val)
+            else:
+                # 删除包含异常值的行
+                data = data[~data[feature].isin(outliers)]
+    print("\n异常值检测 (基于已知范围):")
+    for feature in numerical_features + categorical_features:
+        if feature == "Age":
+            min_val, max_val = 15, 18
+        elif feature == "StudyTimeWeekly":
+            min_val, max_val = 0, 20
+        elif feature == "Absences":
+            min_val, max_val = 0, 30
+        elif feature == "GPA":
+            min_val, max_val = 0, 4.0  # Corrected GPA range
+        elif feature == "Gender":
+            min_val, max_val = 0, 1
+        elif feature == "Ethnicity":
+            min_val, max_val = 0, 3
+        elif feature == "ParentalEducation":
+            min_val, max_val = 0, 4
+        elif feature == "Tutoring":
+            min_val, max_val = 0, 1
+        elif feature == "ParentalInvolvement":
+            min_val, max_val = 0, 4
+        elif feature == "Extracurricular":
+            min_val, max_val = 0, 1
+        elif feature == "Sports":
+            min_val, max_val = 0, 1
+        elif feature == "Music":
+            min_val, max_val = 0, 1
+        elif feature == "Volunteering":
+            min_val, max_val = 0, 1
+        else:
+            min_val, max_val = (
+                data[feature].min(),
+                data[feature].max(),
+            )  # 如果没有明确范围，则使用数据的最小值和最大值
+        outliers = data[(data[feature] < min_val) | (data[feature] > max_val)][feature]
+        if not outliers.empty:
+            print(f"{feature} 中的异常值: \n{outliers}")
+        else:
+            print(f"{feature} 中没有发现超出范围的异常值")
+
+    return data
+
+
+def show_data(data):
     # GPA 分布
     plt.figure(figsize=(10, 6))
     sns.histplot(data["GPA"])
@@ -334,7 +347,7 @@ def show_correlations(data):
 
 
 def analyze_gpa_factors(data):
-    # 定义 ParentalSupport 的映射
+    # 定义 ParentalInvolvement 的映射
     parental_support_map = {0: "无", 1: "低", 2: "中", 3: "高", 4: "非常高"}
     # 创建图形
     plt.figure(figsize=(18, 6))
@@ -350,14 +363,14 @@ def analyze_gpa_factors(data):
     plt.xlabel("每周学习时间", fontproperties=font)
     plt.ylabel("绩点", fontproperties=font)
     plt.title("绩点vs每周学习时间", fontproperties=font)
-    # GPA vs. ParentalSupport (箱线图)
+    # GPA vs. ParentalInvolvement (箱线图)
     plt.subplot(1, 3, 3)
     data_copy = data.copy()  # 创建副本，避免修改原始数据
-    data_copy["ParentalSupport"] = data_copy["ParentalSupport"].map(
+    data_copy["ParentalInvolvement"] = data_copy["ParentalInvolvement"].map(
         parental_support_map
     )
     category_order = list(parental_support_map.values())  # 确保顺序
-    ax = sns.boxplot(x="ParentalSupport", y="GPA", data=data_copy, order=category_order)
+    ax = sns.boxplot(x="ParentalInvolvement", y="GPA", data=data_copy, order=category_order)
     plt.xlabel("家长支持程度", fontproperties=font)
     plt.ylabel("绩点", fontproperties=font)
     plt.title("绩点vs家长支持程度", fontproperties=font)
@@ -451,9 +464,9 @@ def perform_t_test(data, variable):
 
 
 def perform_anova_test(data, variable, group_variable="GPA", num_bins=3):
-    # 检查变量是否是数值类型 且 不是 ParentalSupport
-    if pd.api.types.is_numeric_dtype(data[variable]) and variable != "ParentalSupport":
-        # 如果是数值类型且不是 ParentalSupport，则进行分组
+    # 检查变量是否是数值类型 且 不是 ParentalInvolvement
+    if pd.api.types.is_numeric_dtype(data[variable]) and variable != "ParentalInvolvement":
+        # 如果是数值类型且不是 ParentalInvolvement，则进行分组
         temp_variable = variable + "_Category"  # 临时变量名
         data[temp_variable] = pd.cut(
             data[variable], bins=num_bins, labels=False
@@ -533,35 +546,35 @@ def perform_mannwhitneyu_test(data, variable):
 def show_chi2_test(data):
     print("\n卡方检验：")
     perform_chi2_test(data.copy(), "Absences")
-    perform_chi2_test(data.copy(), "ParentalSupport")
+    perform_chi2_test(data.copy(), "ParentalInvolvement")
     perform_chi2_test(data.copy(), "StudyTimeWeekly")
 
 
 def show_t_test(data):
     print("\nt检验：")
     perform_t_test(data, "Absences")
-    # perform_t_test(data, "ParentalSupport")
+    # perform_t_test(data, "ParentalInvolvement")
     perform_t_test(data, "StudyTimeWeekly")
 
 
 def show_anova_test(data):
     print("\nANOVA检验：")
     perform_anova_test(data.copy(), "Absences")
-    # perform_anova_test(data.copy(), "ParentalSupport")
+    # perform_anova_test(data.copy(), "ParentalInvolvement")
     perform_anova_test(data.copy(), "StudyTimeWeekly")
 
 
 def show_kruskal_test(data):
     print("\nKruskal-Wallis H检验：")
     perform_kruskal_test(data.copy(), "Absences")
-    perform_kruskal_test(data.copy(), "ParentalSupport")
+    perform_kruskal_test(data.copy(), "ParentalInvolvement")
     perform_kruskal_test(data.copy(), "StudyTimeWeekly")
 
 
 def show_mannwhitneyu_test(data):
     print("\nMann-Whitney U检验：")
     perform_mannwhitneyu_test(data.copy(), "Absences")
-    perform_mannwhitneyu_test(data.copy(), "ParentalSupport")
+    perform_mannwhitneyu_test(data.copy(), "ParentalInvolvement")
     perform_mannwhitneyu_test(data.copy(), "StudyTimeWeekly")
 
 
@@ -590,9 +603,9 @@ def perform_linear_regression_mc(data, n_simulations=2400, use_all_variables=Tru
     if use_all_variables:
         studytime_mean = data["StudyTimeWeekly"].mean()
         studytime_std = data["StudyTimeWeekly"].std()
-        parental_support_probs = data["ParentalSupport"].value_counts(normalize=True)
-        variables = ["Absences", "StudyTimeWeekly", "ParentalSupport"]
-        title_suffix = " (使用Absences, StudyTimeWeekly, ParentalSupport)"
+        parental_support_probs = data["ParentalInvolvement"].value_counts(normalize=True)
+        variables = ["Absences", "StudyTimeWeekly", "ParentalInvolvement"]
+        title_suffix = " (使用Absences, StudyTimeWeekly, ParentalInvolvement)"
     else:
         variables = ["Absences"]
         title_suffix = " (仅使用Absences)"
@@ -668,7 +681,7 @@ def show_regression_mc(data):
     print("\n蒙特卡洛模拟：")
     # 线性回归 (仅使用 Absences)
     perform_linear_regression_mc(data.copy(), use_all_variables=False)
-    # 线性回归 (使用Absences, StudyTimeWeekly, ParentalSupport)
+    # 线性回归 (使用Absences, StudyTimeWeekly, ParentalInvolvement)
     perform_linear_regression_mc(data.copy(), use_all_variables=True)
 
 
@@ -677,11 +690,14 @@ if __name__ == "__main__":
     data = data.drop("StudentID", axis=1)
     data = data.drop("GradeClass", axis=1)
 
-    # descriptive_stats(data)
+    descriptive_stats(data)
+    describe_stats(data)
     data = clean_wash(data)
-    # show_data(data)
-    # show_correlations(data)
-    # analyze_gpa_factors(data)
-    # show_standard_test()
-    # show_external_test()
+
+    data = normalize_numerical_features(data)
+    show_data(data)
+    show_correlations(data)
+    analyze_gpa_factors(data)
+    show_standard_test()
+    show_external_test()
     show_regression_mc(data)
