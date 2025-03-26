@@ -70,32 +70,6 @@ def descriptive_stats(data):
         )
     )
 
-    # 统计离散型变量
-    print("\n离散型变量统计:")
-    for feature in categorical_features:
-        print(f"{feature}:")  # 输出变量名
-        counts = data[feature].value_counts()
-        proportions = data[feature].value_counts(normalize=True)
-        combined = pd.DataFrame({"count": counts, "proportion": proportions})
-        combined.index.name = "value"  # 设置索引名为 "value"
-        # 按照 value 值排序
-        combined = combined.sort_index()
-        # 使用字符串格式化对齐 "value" 列
-        formatted_output = ""
-        for index, row in combined.iterrows():
-            formatted_output += (
-                f"{str(index):<8} {int(row['count']):<8} {row['proportion']:.6f}\n"
-            )
-        print("值       数量     占比")
-        print(formatted_output)
-
-    # 统计非离散型变量
-    print("非离散型变量统计:")
-    descriptive_stats = (
-        data[numerical_features].describe().loc[["mean", "std", "min", "max"]]
-    )
-    print(descriptive_stats)
-
     # 检查缺失值
     print("\n缺失值统计:")
     print(data.isnull().sum())
@@ -152,6 +126,7 @@ def descriptive_stats(data):
         sns.boxplot(y=data[col])
         plt.title(f"{col}的箱线图")
     plt.tight_layout()
+    plt.savefig("./assets/pic/箱型图.png")
     plt.show()
 
 
@@ -197,7 +172,7 @@ def clean_wash(data):
             else:
                 # 删除包含异常值的行
                 data = data[~data[feature].isin(outliers)]
-
+    print("\n异常值检测 (基于已知范围):")
     for feature in numerical_features + categorical_features:
         if feature == "Age":
             min_val, max_val = 15, 18
@@ -239,16 +214,69 @@ def clean_wash(data):
     return data
 
 
-def show_gpa(data):
+def show_data(data):
+    # 统计离散型变量
+    print("\n离散型变量统计:")
+    for feature in categorical_features:
+        print(f"{feature}:")  # 输出变量名
+        counts = data[feature].value_counts()
+        proportions = data[feature].value_counts(normalize=True)
+        combined = pd.DataFrame({"count": counts, "proportion": proportions})
+        combined.index.name = "value"  # 设置索引名为 "value"
+        # 按照 value 值排序
+        combined = combined.sort_index()
+        # 使用字符串格式化对齐 "value" 列
+        formatted_output = ""
+        for index, row in combined.iterrows():
+            formatted_output += (
+                f"{str(index):<8} {int(row['count']):<8} {row['proportion']:.6f}\n"
+            )
+        print("值       数量     占比")
+        print(formatted_output)
+
+    # 统计非离散型变量
+    print("非离散型变量统计:")
+    descriptive_stats = (
+        data[numerical_features].describe().loc[["mean", "std", "min", "max"]]
+    )
+    print(descriptive_stats)
+
+    # 绘制分布图 (n x n 形式)
+    num_cols = len(data.columns)
+    n = int(np.ceil(np.sqrt(num_cols)))  # 计算 n，用于 n x n 的子图排列
+    plt.figure(figsize=(11, 11))  # 调整整体图形大小
+    for i, column in enumerate(data.columns):
+        plt.subplot(n, n, i + 1)  # 创建子图 (n x n 排列)
+        sns.histplot(data[column])  # 绘制直方图和KDE曲线
+        plt.title(f"{column} 的分布")  # 设置标题
+        plt.xlabel(column)  # 设置x轴标签
+        plt.ylabel("频率")  # 设置y轴标签
+        # 定制化 x 轴刻度
+        if column in [
+            "Gender",
+            "Tutoring",
+            "Extracurricular",
+            "Sports",
+            "Music",
+            "Volunteering",
+        ]:
+            plt.xticks([0, 1])  # 设置 x 轴刻度为 0 和 1
+        elif column == "ParentalEducation":
+            plt.xticks(range(5))  # 设置 x 轴刻度为 0, 1, 2, 3, 4
+    plt.tight_layout()  # 自动调整子图参数，避免重叠
+    plt.savefig("./assets/pic/分布.png")
+    plt.show()
+
     # GPA 分布
     plt.figure(figsize=(10, 6))
-    sns.histplot(data["GPA"], kde=True)
+    sns.histplot(data["GPA"])
     plt.title("GPA分布", fontproperties=font)
     plt.xlabel("GPA", fontproperties=font)
     plt.ylabel("频率", fontproperties=font)
     ax = plt.gca()
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontproperties(font)
+    plt.savefig("./assets/pic/gpa分布.png")
     plt.show()
     # 计算 GPA 的统计量
     gpa_mean = data["GPA"].mean()
@@ -270,6 +298,7 @@ def show_gpa(data):
     plt.legend()
 
     # 显示图形
+    plt.savefig("./assets/pic/gpa线.png")
     plt.show()
 
 
@@ -283,12 +312,14 @@ def calculate_correlations(data):
     plt.figure(figsize=(12, 10))
     sns.heatmap(pearson_corr, annot=True, cmap="coolwarm", fmt=".3f", linewidths=0.5)
     plt.title("皮尔逊相关系数热力图", fontproperties=font)
+    plt.savefig("./assets/pic/皮尔逊相关系数热力图.png")
     plt.show()
     plt.figure(figsize=(12, 10))
     sns.heatmap(
         spearman_corr, annot=True, cmap="coolwarm", fmt=".3f", linewidths=0.5
     )  # Changed fmt to .3f
     plt.title("斯皮尔曼相关系数热力图", fontproperties=font)
+    plt.savefig("./assets/pic/斯皮尔曼相关系数热力图.png")
     plt.show()
     return pearson_corr, spearman_corr
 
@@ -334,6 +365,7 @@ def analyze_gpa_factors(data):
     for label in ax.get_xticklabels():
         label.set_fontproperties(font)
     plt.tight_layout()  # 调整子图参数，以提供一个整齐的布局。
+    plt.savefig("./assets/pic/主要因素.png")
     plt.show()
 
 
@@ -378,6 +410,7 @@ def perform_chi2_test(data, variable):
     # 设置 x 轴和 y 轴刻度标签的字体
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontproperties(font)
+    plt.savefig("./assets/pic/联列表.png")
     plt.show()
 
     # 执行卡方检验
@@ -602,13 +635,14 @@ def perform_linear_regression_mc(data, n_simulations=2400, use_all_variables=Tru
     print(f"  模拟GPA的95%置信区间: [{s_gpa_ci[0]:.3f}, {s_gpa_ci[1]:.3f}]")
 
     plt.figure(figsize=(10, 6))
-    sns.histplot(simulated_gpas, kde=True)
+    sns.histplot(simulated_gpas)
     plt.title(f"模拟的GPA分布 - 线性回归{title_suffix}", fontproperties=font)
     plt.xlabel("GPA", fontproperties=font)
     plt.ylabel("频率", fontproperties=font)
     ax = plt.gca()
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontproperties(font)
+    plt.savefig("./assets/pic/线性回归.png")
     plt.show()
 
     plt.figure(figsize=(10, 6))
@@ -624,10 +658,10 @@ def perform_linear_regression_mc(data, n_simulations=2400, use_all_variables=Tru
     plt.legend()
 
     # 显示图形
+    plt.savefig("./assets/pic/模拟gpa线.png")
     plt.show()
 
     return simulated_gpas
-
 
 
 def show_regression_mc(data):
@@ -645,7 +679,7 @@ if __name__ == "__main__":
 
     descriptive_stats(data)
     data = clean_wash(data)
-    show_gpa(data)
+    show_data(data)
     show_correlations(data)
     analyze_gpa_factors(data)
     show_standard_test()
