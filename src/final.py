@@ -157,29 +157,86 @@ def descriptive_stats(data):
 
 def clean_wash(data):
     # 处理缺失值 (如果存在)
-    # data = data.dropna()  # 删除包含缺失值的行
-    # data = data.fillna(data.mean())  # 用平均值填充缺失值
-    # 删除重复值
-    # data = data.drop_duplicates()
+    data["StudyTimeWeekly"] = data["StudyTimeWeekly"].fillna(
+        data["StudyTimeWeekly"].mean()
+    )
+    data["GPA"] = data["GPA"].fillna(data["GPA"].mean())
+    cols_to_drop = [
+        col for col in data.columns if col not in ["StudyTimeWeekly", "GPA"]
+    ]
+    # 遍历要删除的列，删除包含缺失值的行
+    for col in cols_to_drop:
+        data.dropna(subset=[col], inplace=True)
 
-    # 数据类型转换 (如果需要)
-    # data['Age'] = data['Age'].astype(int)
-    # 如果有缺失值，可以选择填充或删除
-    # 例如，用平均值填充 GPA 列的缺失值：
-    # data['GPA'].fillna(data['GPA'].mean(), inplace=True)
+    # 打印处理后的缺失值统计
+    print("\n缺失值统计:")
+    print(data.isnull().sum())
+    feature_ranges = {
+        "Age": (15, 18),
+        "StudyTimeWeekly": (0, 20),
+        "Absences": (0, 30),
+        "GPA": (0, 4.0),
+        "Gender": (0, 1),
+        "Ethnicity": (0, 3),
+        "ParentalEducation": (0, 4),
+        "Tutoring": (0, 1),
+        "ParentalSupport": (0, 4),
+        "Extracurricular": (0, 1),
+        "Sports": (0, 1),
+        "Music": (0, 1),
+        "Volunteering": (0, 1),
+    }
 
-    # 将分类变量转换为数值型 (如果需要)
-    # 例如，将 Gender 列转换为 0 和 1：
-    # data['Gender'] = data['Gender'].map({'Male': 0, 'Female': 1})  # 如果 Gender 列是字符串
+    for feature in feature_ranges:
+        min_val, max_val = feature_ranges[feature]
+        outliers = data[(data[feature] < min_val) | (data[feature] > max_val)][feature]
+        if not outliers.empty:
+            if feature in ["StudyTimeWeekly", "GPA"]:
+                # 使用 .loc 和 Min-Max 缩放处理异常值
+                data.loc[:, feature] = data[feature].clip(min_val, max_val)
+            else:
+                # 删除包含异常值的行
+                data = data[~data[feature].isin(outliers)]
+
+    for feature in numerical_features + categorical_features:
+        if feature == "Age":
+            min_val, max_val = 15, 18
+        elif feature == "StudyTimeWeekly":
+            min_val, max_val = 0, 20
+        elif feature == "Absences":
+            min_val, max_val = 0, 30
+        elif feature == "GPA":
+            min_val, max_val = 0, 4.0  # Corrected GPA range
+        elif feature == "Gender":
+            min_val, max_val = 0, 1
+        elif feature == "Ethnicity":
+            min_val, max_val = 0, 3
+        elif feature == "ParentalEducation":
+            min_val, max_val = 0, 4
+        elif feature == "Tutoring":
+            min_val, max_val = 0, 1
+        elif feature == "ParentalSupport":
+            min_val, max_val = 0, 4
+        elif feature == "Extracurricular":
+            min_val, max_val = 0, 1
+        elif feature == "Sports":
+            min_val, max_val = 0, 1
+        elif feature == "Music":
+            min_val, max_val = 0, 1
+        elif feature == "Volunteering":
+            min_val, max_val = 0, 1
+        else:
+            min_val, max_val = (
+                data[feature].min(),
+                data[feature].max(),
+            )  # 如果没有明确范围，则使用数据的最小值和最大值
+        outliers = data[(data[feature] < min_val) | (data[feature] > max_val)][feature]
+        if not outliers.empty:
+            print(f"{feature} 中的异常值: \n{outliers}")
+        else:
+            print(f"{feature} 中没有发现超出范围的异常值")
 
     return data
-
-
-# 异常值检测 (Z-score 法)
-def detect_outliers_zscore(data, threshold=3):
-    z = np.abs(stats.zscore(data))
-    outlier_indices = np.where(z > threshold)
-    return outlier_indices
 
 
 def show_gpa(data):
@@ -201,6 +258,19 @@ def show_gpa(data):
     print(f"  GPA均值: {gpa_mean:.3f}")
     print(f"  GPA标准差: {gpa_std:.3f}")
     print(f"  GPA的95%置信区间: [{gpa_ci[0]:.3f}, {gpa_ci[1]:.3f}]")
+
+    plt.figure(figsize=(10, 6))
+
+    sns.kdeplot(data["GPA"], color="blue", label="实际GPA", linewidth=2)
+    plt.title("实际GPA分布")
+    plt.xlabel("GPA")
+    plt.ylabel("密度")
+    plt.xlim(0, 4)
+    # 显示图例
+    plt.legend()
+
+    # 显示图形
+    plt.show()
 
 
 def calculate_correlations(data):
@@ -542,6 +612,21 @@ def perform_linear_regression_mc(data, n_simulations=2400, use_all_variables=Tru
         label.set_fontproperties(font)
     plt.show()
 
+    plt.figure(figsize=(10, 6))
+    # 模拟数据的 GPA KDE 曲线
+    sns.kdeplot(simulated_gpas, color="red", label="模拟GPA", linewidth=2)
+
+    # 设置图表标题和标签
+    plt.title("模拟GPA分布")
+    plt.xlabel("GPA")
+    plt.ylabel("密度")
+    plt.xlim(0, 4)
+    # 显示图例
+    plt.legend()
+
+    # 显示图形
+    plt.show()
+
     return simulated_gpas
 
 
@@ -633,14 +718,15 @@ def show_regression_mc(data):
 
 
 if __name__ == "__main__":
-    data = pd.read_csv("./assets/Student_performance_data _.csv")
+    data = pd.read_csv("./assets/Student_performance_data.csv")
     data = data.drop("StudentID", axis=1)
     data = data.drop("GradeClass", axis=1)
-    # data=clean_wash(data)
-    # descriptive_stats(data)
-    # show_gpa(data)
-    # show_correlations(data)
-    # analyze_gpa_factors(data)
-    # show_standard_test()
-    # show_external_test()
+
+    descriptive_stats(data)
+    data = clean_wash(data)
+    show_gpa(data)
+    show_correlations(data)
+    analyze_gpa_factors(data)
+    show_standard_test()
+    show_external_test()
     show_regression_mc(data)
