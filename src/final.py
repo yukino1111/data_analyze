@@ -14,7 +14,6 @@ from tabulate import tabulate
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.preprocessing import MinMaxScaler
 
 font_path = "assets/fonts/PingFang-Medium.ttf"  # 替换为你系统中存在的中文字体文件路径
 font = fm.FontProperties(fname=font_path)
@@ -33,21 +32,6 @@ categorical_features = [
     "Volunteering",
 ]
 numerical_features = ["StudyTimeWeekly", "Absences", "GPA"]
-features = ["StudyTimeWeekly", "Absences"]
-
-
-def normalize_numerical_features(df):
-
-    scaler = MinMaxScaler()
-    # 确保要归一化的特征确实存在于 DataFrame 中
-    features_to_normalize = [col for col in features if col in df.columns]
-    if not features_to_normalize:
-        return df  
-    df_normalized = df.copy()
-    df_normalized[features_to_normalize] = scaler.fit_transform(
-        df_normalized[features_to_normalize]
-    )
-    return df_normalized
 
 
 def descriptive_stats(data):
@@ -693,8 +677,6 @@ if __name__ == "__main__":
     descriptive_stats(data)
     describe_stats(data)
     data = clean_wash(data)
-
-    data = normalize_numerical_features(data)
     show_data(data)
     show_correlations(data)
     analyze_gpa_factors(data)
