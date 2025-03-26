@@ -544,7 +544,6 @@ def show_external_test():
 
 
 def smooth_clip(x, lower, upper, smoothness=1.0):
-    """使用 sigmoid 函数平滑地将值限制在 lower 和 upper 之间."""
     return lower + (upper - lower) / (
         1 + np.exp(-smoothness * (x - (lower + upper) / 2))
     )
@@ -630,80 +629,6 @@ def perform_linear_regression_mc(data, n_simulations=2400, use_all_variables=Tru
     return simulated_gpas
 
 
-def perform_polynomial_regression_mc(
-    data, n_simulations=20000, degree=2, use_all_variables=True
-):
-    # 1. 定义变量的概率分布
-    absences_mean = data["Absences"].mean()
-    absences_std = data["Absences"].std()
-
-    if use_all_variables:
-        studytime_mean = data["StudyTimeWeekly"].mean()
-        studytime_std = data["StudyTimeWeekly"].std()
-        parental_support_probs = data["ParentalSupport"].value_counts(normalize=True)
-        variables = ["Absences", "StudyTimeWeekly", "ParentalSupport"]
-        title_suffix = " (使用Absences, StudyTimeWeekly, ParentalSupport)"
-    else:
-        variables = ["Absences"]
-        title_suffix = " (仅使用Absences)"
-
-    # 2. 构建 GPA 的预测模型 (多项式回归)
-    poly = PolynomialFeatures(degree=degree)
-    X = data[variables]
-    X_poly = poly.fit_transform(X)
-
-    model = LinearRegression()
-    model.fit(X_poly, data["GPA"])
-
-    # 3. 执行蒙特卡洛模拟
-    simulated_gpas = []
-    for _ in range(n_simulations):
-        absences_sample = np.random.normal(absences_mean, absences_std)
-
-        if use_all_variables:
-            studytime_sample = np.random.normal(studytime_mean, studytime_std)
-            parental_support_sample = np.random.choice(
-                parental_support_probs.index, p=parental_support_probs.values
-            )
-            input_df = pd.DataFrame(
-                [[absences_sample, studytime_sample, parental_support_sample]],
-                columns=variables,
-            )
-        else:
-            input_df = pd.DataFrame([[absences_sample]], columns=variables)
-
-        input_poly = poly.transform(input_df)  # 转换
-        gpa_prediction = model.predict(input_poly)[0]
-        # gpa_prediction = np.clip(gpa_prediction, 0, 4.0)  # 截断
-        gpa_prediction = smooth_clip(gpa_prediction, 0, 4.0)
-        simulated_gpas.append(gpa_prediction)
-
-    # 4. 分析模拟结果
-    simulated_gpas = np.array(simulated_gpas)
-
-    print(
-        f"多项式回归蒙特卡洛模拟结果 (模拟次数: {n_simulations}, 阶数: {degree}){title_suffix}:"
-    )
-    print(f"  模拟GPA均值: {simulated_gpas.mean():.3f}")
-    print(f"  模拟GPA标准差: {simulated_gpas.std():.3f}")
-    s_gpa_ci = np.percentile(simulated_gpas, [2.5, 97.5])
-    print(f"  模拟GPA的95%置信区间: [{s_gpa_ci[0]:.3f}, {s_gpa_ci[1]:.3f}]")
-
-    plt.figure(figsize=(10, 6))
-    sns.histplot(simulated_gpas, kde=True)
-    plt.title(
-        f"模拟的GPA分布 - 多项式回归 (阶数: {degree}){title_suffix}",
-        fontproperties=font,
-    )
-    plt.xlabel("GPA", fontproperties=font)
-    plt.ylabel("频率", fontproperties=font)
-    ax = plt.gca()
-    for label in ax.get_xticklabels() + ax.get_yticklabels():
-        label.set_fontproperties(font)
-    plt.show()
-
-    return simulated_gpas
-
 
 def show_regression_mc(data):
     print("\n蒙特卡洛模拟：")
@@ -711,10 +636,6 @@ def show_regression_mc(data):
     perform_linear_regression_mc(data.copy(), use_all_variables=False)
     # 线性回归 (使用Absences, StudyTimeWeekly, ParentalSupport)
     perform_linear_regression_mc(data.copy(), use_all_variables=True)
-    # 多项式回归 (仅使用 Absences, 阶数=2)
-    # perform_polynomial_regression_mc(data.copy(), degree=2, use_all_variables=False)
-    # 多项式回归 (使用Absences, StudyTimeWeekly, ParentalSupport, 阶数=2)
-    # perform_polynomial_regression_mc(data.copy(), degree=2, use_all_variables=True)
 
 
 if __name__ == "__main__":
