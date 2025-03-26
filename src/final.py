@@ -20,6 +20,7 @@ font = fm.FontProperties(fname=font_path)
 plt.rcParams["axes.unicode_minus"] = False  # 解决负号显示为方块的问题
 plt.rcParams["font.sans-serif"] = ["SimHei"]  # 用来正常显示中文标签
 categorical_features = [
+    "Age",
     "Gender",
     "Ethnicity",
     "ParentalEducation",
@@ -30,7 +31,7 @@ categorical_features = [
     "Music",
     "Volunteering",
 ]
-numerical_features = ["Age", "StudyTimeWeekly", "Absences", "GPA"]
+numerical_features = ["StudyTimeWeekly", "Absences", "GPA"]
 
 
 def descriptive_stats(data):
@@ -38,7 +39,7 @@ def descriptive_stats(data):
     # 定义离散型和非离散型变量
 
     # 创建一个空的 DataFrame 来存储结果
-    variable_info = pd.DataFrame(columns=["变量名", "类型", "数据类型"])
+    variable_info = pd.DataFrame(columns=["变量名", "类型"])
     # 遍历所有列
     for col in data.columns:
         if col in categorical_features:
@@ -53,7 +54,7 @@ def descriptive_stats(data):
             [
                 variable_info,
                 pd.DataFrame(
-                    [{"变量名": col, "类型": var_type, "数据类型": data_type}]
+                    [{"变量名": col, "类型": var_type}]
                 ),
             ],
             ignore_index=True,
@@ -66,7 +67,7 @@ def descriptive_stats(data):
             headers="keys",
             tablefmt="psql",
             showindex=False,
-            colalign=("left", "left", "left"),
+            colalign=("left", "left"),
         )
     )
 
@@ -381,7 +382,6 @@ def perform_chi2_test(data, variable):
             data[variable], q=3, labels=["低", "中", "高"]
         )
         variable_to_use = variable + "_Category"
-        print(variable_to_use)
     else:
         variable_to_use = variable
     # 创建列联表
