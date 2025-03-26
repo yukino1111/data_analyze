@@ -373,7 +373,7 @@ def analyze_gpa_factors(data):
 def perform_chi2_test(data, variable):
     # 将 GPA 分类 (例如，高、中、低、优)
     data["GPA_Category"] = pd.cut(
-        data["GPA"], bins=[0, 2, 3, 4], labels=["差", "中", "优"]
+        data["GPA"], bins=[0, 1, 2.5, 4], labels=["差", "中", "优"]
     )
     # 检查变量是分类变量还是连续变量
     if variable in numerical_features:
@@ -547,7 +547,7 @@ def show_t_test(data):
 def show_anova_test(data):
     print("\nANOVA检验：")
     perform_anova_test(data.copy(), "Absences")
-    perform_anova_test(data.copy(), "ParentalSupport")
+    # perform_anova_test(data.copy(), "ParentalSupport")
     perform_anova_test(data.copy(), "StudyTimeWeekly")
 
 
@@ -677,11 +677,11 @@ if __name__ == "__main__":
     data = data.drop("StudentID", axis=1)
     data = data.drop("GradeClass", axis=1)
 
-    descriptive_stats(data)
+    # descriptive_stats(data)
     data = clean_wash(data)
-    show_data(data)
-    show_correlations(data)
-    analyze_gpa_factors(data)
-    show_standard_test()
-    show_external_test()
+    # show_data(data)
+    # show_correlations(data)
+    # analyze_gpa_factors(data)
+    # show_standard_test()
+    # show_external_test()
     show_regression_mc(data)
