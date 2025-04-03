@@ -585,7 +585,7 @@ def Unsupervised_Learning(data_processed):
     # *** 手动选择 K ***
     # 基于上面的肘部图，或者你的领域知识，选择一个 K 值
     # 例如，如果图表在 K=4 或 K=5 处有拐点，或者你知道有 5 个等级
-    chosen_k = 13  # <--- 在这里设置你选择的 K 值
+    chosen_k =14  # <--- 在这里设置你选择的 K 值
     print(f"\n*** 基于肘部图或先验知识，选择 K = {chosen_k} ***")
 
     results = []  # 存储结果
@@ -604,8 +604,8 @@ def Unsupervised_Learning(data_processed):
     # 你可能需要根据数据特性和轮廓系数反馈来调整这些值
     # 例如，如果噪声点太多，尝试增大 eps 或 min_samples
     # 如果簇太少或太大，尝试减小 eps
-    dbscan_eps = 1.5  # <--- 示例值，需要调整
-    dbscan_min_samples = 5  # <--- 示例值，需要调整
+    dbscan_eps = 14  # <--- 示例值，需要调整
+    dbscan_min_samples = 15  # <--- 示例值，需要调整
     dbscan_results = run_dbscan(
         X_unsupervised, eps=dbscan_eps, min_samples=dbscan_min_samples
     )
