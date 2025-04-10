@@ -18,7 +18,7 @@ import time  # 用于计算训练时间
 
 # --- Unsupervised Learning Imports ---
 from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, calinski_harabasz_score
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from scipy.cluster.hierarchy import (
@@ -30,20 +30,28 @@ import warnings  # To ignore specific warnings like KMeans future changes
 warnings.filterwarnings(
     "ignore", category=FutureWarning, module="sklearn.cluster._kmeans"
 )
+from sklearn.exceptions import UndefinedMetricWarning  # 导入特定的警告类型
+
+warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 
-def preprocess_data(df, numerical_cols, categorical_cols_to_encode):
+def preprocess_data(df, categorical_cols_to_encode):
     """对数值列标准化，对指定分类列进行独热编码"""
     df_processed = df.copy()
-    # 1. 标准化数值特征
-    # if numerical_cols:  # 检查列表是否为空
-    #     scaler = StandardScaler()
-    #     df_processed[numerical_cols] = scaler.fit_transform(df[numerical_cols])
-    #     print(f"数值特征 {numerical_cols} 已进行标准化处理。")
-    if numerical_cols:  # 检查列表是否为空
+    numerical_features1 = ["GPA"]
+    numerical_features2 = ["StudyTimeWeekly", "Absences"]
+    if numerical_features1:  # 检查列表是否为空
+        scaler = StandardScaler()
+        df_processed[numerical_features1] = scaler.fit_transform(
+            df[numerical_features1]
+        )
+        print(f"数值特征 {numerical_features1} 已进行标准化处理。")
+    if numerical_features2:  # 检查列表是否为空
         scaler = MinMaxScaler()
-        df_processed[numerical_cols] = scaler.fit_transform(df[numerical_cols])
-        # print(f"数值特征 {numerical_cols} 已进行归一化处理 (Min-Max 缩放)。")
+        df_processed[numerical_features2] = scaler.fit_transform(
+            df[numerical_features2]
+        )
+        print(f"数值特征 {numerical_features2} 已进行归一化处理 (Min-Max 缩放)。")
     # 2. 独热编码分类特征
     if categorical_cols_to_encode:  # 检查列表是否为空
         # 使用 get_dummies 进行独热编码
@@ -52,9 +60,12 @@ def preprocess_data(df, numerical_cols, categorical_cols_to_encode):
         #     df_processed, columns=categorical_cols_to_encode,  dtype=int
         # )
         df_processed = pd.get_dummies(
-            df_processed, columns=categorical_cols_to_encode, drop_first=True, dtype=int
+            df_processed,
+            columns=categorical_cols_to_encode,
+            drop_first=False,
+            dtype=int,
         )
-        # print(f"分类特征 {categorical_cols_to_encode} 已进行独热编码处理。")
+        print(f"分类特征 {categorical_cols_to_encode} 已进行独热编码处理。")
     return df_processed
 
 
@@ -62,10 +73,7 @@ def train_logistic_regression(X_train, y_train, X_test, y_test):
     """训练逻辑回归模型并评估"""
     print("\n--- 训练逻辑回归模型 ---")
     start_time = time.time()
-    # 增加 max_iter 以确保收敛，multi_class='auto' 会自动选择策略 (通常是 'ovr')
-    model = LogisticRegression(
-        random_state=42, max_iter=1000, multi_class="auto", solver="lbfgs"
-    )
+    model = LogisticRegression(random_state=42, max_iter=1000, solver="lbfgs")
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     end_time = time.time()
@@ -96,7 +104,7 @@ def train_decision_tree(X_train, y_train, X_test, y_test):
     print("\n--- 训练决策树模型 ---")
     start_time = time.time()
     # 设置 random_state 以便结果可复现，可以调整 max_depth 等防止过拟合
-    model = DecisionTreeClassifier(random_state=42, max_depth=10)  # 示例：限制最大深度
+    model = DecisionTreeClassifier(random_state=42, max_depth=5)  # 示例：限制最大深度
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     end_time = time.time()
@@ -120,33 +128,27 @@ def train_decision_tree(X_train, y_train, X_test, y_test):
     }
 
 
-def train_svm(X_train, y_train, X_test, y_test):
-    """训练支持向量机(SVM)模型并评估"""
-    print("\n--- 训练支持向量机 (SVM) 模型 ---")
+def train_svm(X_train, y_train, X_test, y_test, kernel="rbf"):
+    """训练支持向量机(SVM)模型并评估，支持不同的核函数"""
+    print(f"\n--- 训练支持向量机 (SVM) 模型 (Kernel: {kernel}) ---")
     start_time = time.time()
-    # 使用 RBF 核函数是常用选择，设置 random_state
-    # probability=True 会慢一些，但如果需要概率预测则需要设置
-    model = SVC(kernel="rbf", random_state=42, probability=False)
+    model = SVC(kernel=kernel, random_state=42, probability=True)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     end_time = time.time()
-
     accuracy = accuracy_score(y_test, y_pred)
     report = classification_report(y_test, y_pred, target_names=grade_labels)
     cm = confusion_matrix(y_test, y_pred)
     training_time = end_time - start_time
-
     print(f"训练时间: {training_time:.4f} 秒")
     print(f"准确率: {accuracy:.4f}")
-    # print("分类报告:\n", report)
-    # print("混淆矩阵:\n", cm)
-
     return {
-        "name": "SVM (RBF Kernel)",
+        "name": f"SVM ({kernel.capitalize()} Kernel)",
         "accuracy": accuracy,
         "report": report,
         "cm": cm,
         "time": training_time,
+        "kernel": kernel,  # 保存核函数信息
     }
 
 
@@ -221,12 +223,13 @@ grade_labels = []  # 先初始化为空列表
 
 
 # --- 3. 修改主函数流程 ---
-def Supervised_Learning(data_processed):
+def Supervised_Learning(data_processed1):
     """执行监督学习流程：数据分割、模型训练、评估和可视化"""
     print("\n==========================")
     print("   开始执行监督学习任务   ")
     print("==========================")
-
+    data_processed = data_processed1.copy()
+    # data_processed = data.drop("GPA", axis=1)
     # 1. 分离特征 (X) 和目标变量 (y)
     if "GradeClass" not in data_processed.columns:
         print("错误：目标变量 'GradeClass' 不在处理后的数据中！")
@@ -270,9 +273,11 @@ def Supervised_Learning(data_processed):
     dt_results = train_decision_tree(X_train, y_train, X_test, y_test)
     results.append(dt_results)
 
-    # 调用SVM
-    svm_results = train_svm(X_train, y_train, X_test, y_test)
-    results.append(svm_results)
+    # 训练不同核函数的 SVM 模型
+    svm_kernels = ["linear", "poly", "rbf"]
+    for kernel in svm_kernels:
+        svm_results = train_svm(X_train, y_train, X_test, y_test, kernel=kernel)
+        results.append(svm_results)
 
     # 4. 结果可视化
     print("\n--- 生成评估图表 ---")
@@ -299,32 +304,51 @@ def Supervised_Learning(data_processed):
 
 
 def find_optimal_k_elbow(X, max_k=11, random_state=42):
-    """使用肘部法则寻找 K-Means 的最佳 K 值并绘图"""
+    """使用肘部法则寻找 K-Means 的最佳 K 值并绘图，同时计算轮廓系数和 Calinski-Harabasz 指数"""
     print("\n--- 寻找 K-Means 的最佳 K (肘部法则) ---")
     inertias = []
+    silhouette_scores = []
+    calinski_harabasz_scores = []
     k_range = range(2, max_k)  # K 至少为 2 才有意义
     for k in k_range:
-        kmeans = KMeans(
-            n_clusters=k, random_state=random_state, n_init=10
-        )  # n_init='auto' or 10
+        kmeans = KMeans(n_clusters=k, random_state=random_state, n_init=10)
         kmeans.fit(X)
-        inertias.append(kmeans.inertia_)  # Inertia: WCSS
-
-    plt.figure(figsize=(8, 5))
+        inertias.append(kmeans.inertia_)
+        # 计算轮廓系数，需要所有数据点的标签
+        labels = kmeans.labels_
+        silhouette_scores.append(silhouette_score(X, labels))
+        calinski_harabasz_scores.append(calinski_harabasz_score(X, labels))
+    # 绘制肘部图
+    plt.figure(figsize=(18, 5))  # 增加图像宽度，方便显示多个子图
+    plt.subplot(1, 3, 1)  # 1 行 3 列，选择第 1 个子图
     plt.plot(k_range, inertias, marker="o")
     plt.title("Elbow Method for Optimal K")
     plt.xlabel("Number of Clusters (K)")
     plt.ylabel("Inertia (WCSS)")
     plt.xticks(k_range)
     plt.grid(True)
+    # 绘制轮廓系数图
+    plt.subplot(1, 3, 2)  # 1 行 3 列，选择第 2 个子图
+    plt.plot(k_range, silhouette_scores, marker="o")
+    plt.title("Silhouette Score for Optimal K")
+    plt.xlabel("Number of Clusters (K)")
+    plt.ylabel("Silhouette Score")
+    plt.xticks(k_range)
+    plt.grid(True)
+    # 绘制 Calinski-Harabasz 指数图
+    plt.subplot(1, 3, 3)  # 1 行 3 列，选择第 3 个子图
+    plt.plot(k_range, calinski_harabasz_scores, marker="o")
+    plt.title("Calinski-Harabasz Index for Optimal K")
+    plt.xlabel("Number of Clusters (K)")
+    plt.ylabel("Calinski-Harabasz Index")
+    plt.xticks(k_range)
+    plt.grid(True)
+    plt.tight_layout()  # 自动调整子图参数，使之填充整个图像区域
     plt.show()
-
-    # 启发式地选择拐点 K (这里简单实现，可能需要更复杂的寻找拐点逻辑)
-    # 这里我们暂时不自动选择，让用户观察图形，并在调用时指定 K
-    print("请观察上面的肘部图，确定一个合适的 K 值。")
-    # 你可以在这里添加更复杂的逻辑来自动检测拐点，或者直接返回 inertias 供手动选择
-    # 为简化起见，我们将在主函数中设定一个 K 值 (例如，基于图形或先验知识)
-    return k_range, inertias  # 返回范围和惯性值，以便后续可能使用
+    print(
+        "请观察上面的肘部图、轮廓系数图和 Calinski-Harabasz 指数图，综合确定一个合适的 K 值。"
+    )
+    return k_range, inertias, silhouette_scores, calinski_harabasz_scores
 
 
 def run_kmeans(X, n_clusters, random_state=42):
@@ -585,7 +609,7 @@ def Unsupervised_Learning(data_processed):
     # *** 手动选择 K ***
     # 基于上面的肘部图，或者你的领域知识，选择一个 K 值
     # 例如，如果图表在 K=4 或 K=5 处有拐点，或者你知道有 5 个等级
-    chosen_k =14  # <--- 在这里设置你选择的 K 值
+    chosen_k = 2  # <--- 在这里设置你选择的 K 值
     print(f"\n*** 基于肘部图或先验知识，选择 K = {chosen_k} ***")
 
     results = []  # 存储结果
@@ -604,8 +628,8 @@ def Unsupervised_Learning(data_processed):
     # 你可能需要根据数据特性和轮廓系数反馈来调整这些值
     # 例如，如果噪声点太多，尝试增大 eps 或 min_samples
     # 如果簇太少或太大，尝试减小 eps
-    dbscan_eps = 14  # <--- 示例值，需要调整
-    dbscan_min_samples = 15  # <--- 示例值，需要调整
+    dbscan_eps = 1.1  # <--- 示例值，需要调整
+    dbscan_min_samples = 10  # <--- 示例值，需要调整
     dbscan_results = run_dbscan(
         X_unsupervised, eps=dbscan_eps, min_samples=dbscan_min_samples
     )
@@ -647,18 +671,15 @@ def Unsupervised_Learning(data_processed):
 
 if __name__ == "__main__":
     data = description_wash()
-    categorical_features_to_encode = ["Ethnicity", "Age"]
-    # categorical_features_to_encode = ["Ethnicity", "Age", "ParentalEducation", "ParentalInvolvement"]
+    categorical_features_to_encode = [
+        "Ethnicity",
+        "ParentalEducation",
+        "ParentalInvolvement",
+    ]
     # 注意：二元特征和 GradeClass 不在这里
-    # 调用预处理函数
-    data_processed = preprocess_data(
-        data, numerical_features, categorical_features_to_encode
-    )
-    # print("\n处理后的数据样本 (前5行):")
-    # print(data_processed.head())
-    # print("\n处理后的数据列名:")
-    # print(data_processed.columns)
-    # 后续的学习函数使用处理后的数据
-    supervised_results = Supervised_Learning(data_processed)
+    data_processed = preprocess_data(data, categorical_features_to_encode)
+
+    data_processed.to_csv(PROCESSED_DATA_PATH, index=False, encoding="utf-8")
+    # supervised_results = Supervised_Learning(data_processed)
     unsupervised_results = Unsupervised_Learning(data_processed)
     print("\n所有流程执行完毕。")
