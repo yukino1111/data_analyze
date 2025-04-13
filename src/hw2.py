@@ -39,7 +39,7 @@ def preprocess_data(df, categorical_cols_to_encode):
     """对数值列标准化，对指定分类列进行独热编码"""
     df_processed = df.copy()
     numerical_features1 = ["GPA"]
-    numerical_features2 = ["StudyTimeWeekly", "Absences","Age"]
+    numerical_features2 = ["StudyTimeWeekly", "Absences", "Age"]
     if numerical_features1:  # 检查列表是否为空
         scaler = StandardScaler()
         df_processed[numerical_features1] = scaler.fit_transform(
@@ -480,7 +480,7 @@ def apply_tsne(X, n_components=2, random_state=42, perplexity=30.0):
         n_components=n_components,
         random_state=random_state,
         perplexity=effective_perplexity,
-        n_iter=300,
+        max_iter=300,
     )  # n_iter 可以调整
     X_reduced = tsne.fit_transform(X)
     end_time = time.time()
@@ -614,11 +614,11 @@ def Unsupervised_Learning(data_processed):
 
     results = []  # 存储结果
 
-    # 运行 K-Means
+    # # 运行 K-Means
     kmeans_results = run_kmeans(X_unsupervised, n_clusters=chosen_k)
     results.append(kmeans_results)
 
-    # 3. 运行层次聚类 (使用与 K-Means 相同的 K 以便比较)
+    # # 3. 运行层次聚类 (使用与 K-Means 相同的 K 以便比较)
     hierarchical_results = run_hierarchical(X_unsupervised, n_clusters=chosen_k)
     results.append(hierarchical_results)
 
