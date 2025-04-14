@@ -3,18 +3,18 @@ from common import description_wash
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
-import pandas as pd  # 假设 description_wash() 返回 Pandas DataFrame
+import pandas as pd
 
 # --- 监督学习所需库 ---
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC  # "Support Vector Classification"
+from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np  # 用于获取类别标签
-import time  # 用于计算训练时间
+import numpy as np
+import time
 
 # --- Unsupervised Learning Imports ---
 from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN
@@ -24,14 +24,13 @@ from sklearn.manifold import TSNE
 from scipy.cluster.hierarchy import (
     dendrogram,
     linkage,
-)  # For potential dendrogram plotting (optional)
-import warnings  # To ignore specific warnings like KMeans future changes
+)
 
+import warnings
 warnings.filterwarnings(
     "ignore", category=FutureWarning, module="sklearn.cluster._kmeans"
 )
-from sklearn.exceptions import UndefinedMetricWarning  # 导入特定的警告类型
-
+from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 
@@ -46,19 +45,15 @@ def preprocess_data(df, categorical_cols_to_encode):
             df[numerical_features1]
         )
         print(f"数值特征 {numerical_features1} 已进行标准化处理。")
-    if numerical_features2:  # 检查列表是否为空
+    if numerical_features2:
         scaler = MinMaxScaler()
         df_processed[numerical_features2] = scaler.fit_transform(
             df[numerical_features2]
         )
         print(f"数值特征 {numerical_features2} 已进行归一化处理 (Min-Max 缩放)。")
     # 2. 独热编码分类特征
-    if categorical_cols_to_encode:  # 检查列表是否为空
-        # 使用 get_dummies 进行独热编码
+    if categorical_cols_to_encode:
         # drop_first=True 可以减少一个维度，避免多重共线性，常用于线性模型
-        # df_processed = pd.get_dummies(
-        #     df_processed, columns=categorical_cols_to_encode,  dtype=int
-        # )
         df_processed = pd.get_dummies(
             df_processed,
             columns=categorical_cols_to_encode,
@@ -81,7 +76,7 @@ def train_logistic_regression(X_train, y_train, X_test, y_test):
     accuracy = accuracy_score(y_test, y_pred)
     report = classification_report(
         y_test, y_pred, target_names=grade_labels
-    )  # 使用后面定义的 grade_labels
+    )
     cm = confusion_matrix(y_test, y_pred)
     training_time = end_time - start_time
 
@@ -181,7 +176,6 @@ def plot_comparison(results):
     ax1.tick_params(axis="y", labelcolor=color)
     ax1.set_ylim(0, 1.05)  # 设置准确率范围
 
-    # 在条形图上显示数值
     for bar in bars:
         yval = bar.get_height()
         plt.text(
@@ -192,7 +186,6 @@ def plot_comparison(results):
             ha="center",
         )  # va='bottom' 放在条形图上方
 
-    # 创建第二个 Y 轴共享 X 轴，用于绘制训练时间
     ax2 = ax1.twinx()
     color = "tab:red"
     ax2.set_ylabel("Training Time (s)", color=color)
@@ -218,18 +211,16 @@ grade_labels_map = {
     3: "D (2.0-2.5)",
     4: "F (<2.0)",
 }
-# 稍后我们会根据 y 中的实际值动态生成 grade_labels
-grade_labels = []  # 先初始化为空列表
+grade_labels = []
 
 
 # --- 3. 修改主函数流程 ---
 def Supervised_Learning(data_processed1):
-    """执行监督学习流程：数据分割、模型训练、评估和可视化"""
     print("\n==========================")
     print("   开始执行监督学习任务   ")
     print("==========================")
     data_processed = data_processed1.copy()
-    # data_processed = data.drop("GPA", axis=1)
+    data_processed = data_processed.drop("GPA", axis=1)
     # 1. 分离特征 (X) 和目标变量 (y)
     if "GradeClass" not in data_processed.columns:
         print("错误：目标变量 'GradeClass' 不在处理后的数据中！")
@@ -238,12 +229,11 @@ def Supervised_Learning(data_processed1):
     X = data_processed.drop("GradeClass", axis=1)
     y = data_processed["GradeClass"]
 
-    # 动态生成 grade_labels，确保顺序与 y 中的唯一值一致
-    global grade_labels  # 声明我们要修改全局变量 grade_labels
-    unique_grades = sorted(y.unique())  # 获取排序后的唯一等级值
+    global grade_labels
+    unique_grades = sorted(y.unique())
     grade_labels = [
         grade_labels_map.get(g, f"Unknown({g})") for g in unique_grades
-    ]  # 使用映射生成标签
+    ]
     print(f"识别到的等级标签: {grade_labels}")
 
     # 2. 划分训练集和测试集
@@ -263,7 +253,7 @@ def Supervised_Learning(data_processed1):
         return
 
     # 3. 训练和评估各个模型
-    results = []  # 用于存储每个模型的结果
+    results = []
 
     # 调用逻辑回归
     lr_results = train_logistic_regression(X_train, y_train, X_test, y_test)
@@ -300,12 +290,11 @@ def Supervised_Learning(data_processed1):
     print("   监督学习任务执行完毕   ")
     print("==========================")
 
-    return results  # 可以选择返回结果供后续分析
+    return results
 
 
 def find_optimal_k_elbow(X, max_k=11, random_state=42):
-    """使用肘部法则寻找 K-Means 的最佳 K 值并绘图，同时计算轮廓系数和 Calinski-Harabasz 指数"""
-    print("\n--- 寻找 K-Means 的最佳 K (肘部法则) ---")
+    print("\n--- 寻找 K-Means 的最佳 K ---")
     inertias = []
     silhouette_scores = []
     calinski_harabasz_scores = []
@@ -352,7 +341,6 @@ def find_optimal_k_elbow(X, max_k=11, random_state=42):
 
 
 def run_kmeans(X, n_clusters, random_state=42):
-    """运行 K-Means 聚类"""
     print(f"\n--- 运行 K-Means (K={n_clusters}) ---")
     start_time = time.time()
     kmeans = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
@@ -555,7 +543,6 @@ def plot_unsupervised_comparison(results):
         min(min(scores) - 0.1, -0.2), max(max(scores) + 0.1, 0.5)
     )  # 动态调整，但至少包含部分负数区域
 
-    # 在条形图上显示数值
     for bar in bars:
         yval = bar.get_height()
         plt.text(
@@ -566,7 +553,6 @@ def plot_unsupervised_comparison(results):
             ha="center",
         )
 
-    # 创建第二个 Y 轴共享 X 轴，用于绘制处理时间
     ax2 = ax1.twinx()
     color = "tab:red"
     ax2.set_ylabel("Processing Time (s)", color=color)
@@ -574,7 +560,6 @@ def plot_unsupervised_comparison(results):
         names, times, color=color, marker="o", linestyle="--", label="Processing Time"
     )
     ax2.tick_params(axis="y", labelcolor=color)
-    # 根据时间调整 Y 轴范围，确保从 0 开始
     ax2.set_ylim(0, max(times) * 1.1)
 
     fig.suptitle("Clustering Algorithm Comparison: Silhouette Score and Time")
@@ -584,16 +569,19 @@ def plot_unsupervised_comparison(results):
     plt.show()
 
 
-def Unsupervised_Learning(data_processed):
+def Unsupervised_Learning(data_processed2,k):
     """执行无监督学习流程：聚类、降维和评估"""
     print("\n=============================")
     print("   开始执行无监督学习任务   ")
     print("=============================")
-
+    data_processed=data_processed2.copy()
     # 1. 准备数据：通常不使用目标变量
     if "GradeClass" in data_processed.columns:
         X_unsupervised = data_processed.drop("GradeClass", axis=1)
         print("已移除 'GradeClass' 用于无监督学习。")
+    elif "GPA" in data_processed.columns:
+        X_unsupervised = data_processed.drop("GPA", axis=1)
+        print("已移除 'GPA' 用于无监督学习。")
     else:
         X_unsupervised = data_processed.copy()
         print("未找到 'GradeClass'，使用所有提供的特征进行无监督学习。")
@@ -605,14 +593,14 @@ def Unsupervised_Learning(data_processed):
     print(f"用于聚类的数据维度: {X_unsupervised.shape}")
 
     # 2. K-Means: 先用肘部法则确定 K
-    find_optimal_k_elbow(X_unsupervised, max_k=20)
+    find_optimal_k_elbow(X_unsupervised, max_k=50)
     # *** 手动选择 K ***
     # 基于上面的肘部图，或者你的领域知识，选择一个 K 值
     # 例如，如果图表在 K=4 或 K=5 处有拐点，或者你知道有 5 个等级
-    chosen_k = 17  # <--- 在这里设置你选择的 K 值
+    chosen_k = k
     print(f"\n*** 基于肘部图或先验知识，选择 K = {chosen_k} ***")
 
-    results = []  # 存储结果
+    results = []
 
     # # 运行 K-Means
     kmeans_results = run_kmeans(X_unsupervised, n_clusters=chosen_k)
@@ -629,7 +617,7 @@ def Unsupervised_Learning(data_processed):
     # 例如，如果噪声点太多，尝试增大 eps 或 min_samples
     # 如果簇太少或太大，尝试减小 eps
     dbscan_eps = 1.25  # <--- 示例值，需要调整
-    dbscan_min_samples = 17  # <--- 示例值，需要调整
+    dbscan_min_samples = X_unsupervised.shape[1]+1  # <--- 示例值，需要调整
     dbscan_results = run_dbscan(
         X_unsupervised, eps=dbscan_eps, min_samples=dbscan_min_samples
     )
@@ -677,9 +665,8 @@ if __name__ == "__main__":
         "ParentalInvolvement",
     ]
 
-    # 注意：二元特征和 GradeClass 不在这里
     data_processed = preprocess_data(data, categorical_features_to_encode)
-
+    data1=data_processed.copy()
     data_processed = data_processed.drop("Age", axis=1)
     data_processed = data_processed.drop("Gender", axis=1)
     columns_to_drop = [col for col in data_processed.columns if "Ethnicity" in col]
@@ -688,9 +675,12 @@ if __name__ == "__main__":
     data_processed = data_processed.drop("Sports", axis=1)
     data_processed = data_processed.drop("Music", axis=1)
     data_processed = data_processed.drop("Volunteering", axis=1)
-
     data_processed.to_csv(PROCESSED_DATA_PATH, index=False, encoding="utf-8")
 
-    # supervised_results = Supervised_Learning(data_processed)
-    unsupervised_results = Unsupervised_Learning(data_processed)
+    supervised_results = Supervised_Learning(data_processed)
+    unsupervised_results = Unsupervised_Learning(data_processed,24)
+
+    supervised_results = Supervised_Learning(data1)
+    unsupervised_results = Unsupervised_Learning(data1,6)
+
     print("\n所有流程执行完毕。")
