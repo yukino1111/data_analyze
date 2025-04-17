@@ -21,3 +21,4 @@ plt.rcParams["axes.unicode_minus"] = False  # 解决负号显示为方块的问�
 plt.rcParams["font.sans-serif"] = ["SimHei"]  # 用来正常显示中文标签
 DATA_PATH = "./assets/Student_performance_data.csv"
 PROCESSED_DATA_PATH = "./assets/processed_data.csv"
+WASHED_DATA_PATH = "./assets/washed_data.csv"

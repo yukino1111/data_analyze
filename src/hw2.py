@@ -27,10 +27,12 @@ from scipy.cluster.hierarchy import (
 )
 
 import warnings
+
 warnings.filterwarnings(
     "ignore", category=FutureWarning, module="sklearn.cluster._kmeans"
 )
 from sklearn.exceptions import UndefinedMetricWarning
+
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 
@@ -74,16 +76,12 @@ def train_logistic_regression(X_train, y_train, X_test, y_test):
     end_time = time.time()
 
     accuracy = accuracy_score(y_test, y_pred)
-    report = classification_report(
-        y_test, y_pred, target_names=grade_labels
-    )
+    report = classification_report(y_test, y_pred, target_names=grade_labels)
     cm = confusion_matrix(y_test, y_pred)
     training_time = end_time - start_time
 
     print(f"训练时间: {training_time:.4f} 秒")
     print(f"准确率: {accuracy:.4f}")
-    # print("分类报告:\n", report) # 报告可能很长，先注释掉，需要时再打开
-    # print("混淆矩阵:\n", cm)
 
     return {
         "name": "Logistic Regression",
@@ -111,8 +109,6 @@ def train_decision_tree(X_train, y_train, X_test, y_test):
 
     print(f"训练时间: {training_time:.4f} 秒")
     print(f"准确率: {accuracy:.4f}")
-    # print("分类报告:\n", report)
-    # print("混淆矩阵:\n", cm)
 
     return {
         "name": "Decision Tree",
@@ -157,6 +153,7 @@ def plot_confusion_matrix(cm, classes, title="Confusion Matrix"):
     plt.ylabel("True Label")
     plt.xlabel("Predicted Label")
     plt.tight_layout()  # 调整布局防止标签重叠
+    plt.savefig(f"./assets/pic/{title}.png")
     plt.show()
 
 
@@ -200,6 +197,7 @@ def plot_comparison(results):
     )  # 合并图例
     plt.xticks(rotation=15)  # 轻微旋转X轴标签防止重叠
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])  # 调整布局，留出主标题空间
+    plt.savefig(f"./assets/pic/Accuracy and Training Time.png")
     plt.show()
 
 
@@ -231,9 +229,7 @@ def Supervised_Learning(data_processed1):
 
     global grade_labels
     unique_grades = sorted(y.unique())
-    grade_labels = [
-        grade_labels_map.get(g, f"Unknown({g})") for g in unique_grades
-    ]
+    grade_labels = [grade_labels_map.get(g, f"Unknown({g})") for g in unique_grades]
     print(f"识别到的等级标签: {grade_labels}")
 
     # 2. 划分训练集和测试集
@@ -293,7 +289,7 @@ def Supervised_Learning(data_processed1):
     return results
 
 
-def find_optimal_k_elbow(X, max_k=11, random_state=42):
+def find_optimal_k_elbow(X, max_k=11, random_state=42, supposed_k=-1):
     print("\n--- 寻找 K-Means 的最佳 K ---")
     inertias = []
     silhouette_scores = []
@@ -308,8 +304,8 @@ def find_optimal_k_elbow(X, max_k=11, random_state=42):
         silhouette_scores.append(silhouette_score(X, labels))
         calinski_harabasz_scores.append(calinski_harabasz_score(X, labels))
     # 绘制肘部图
-    plt.figure(figsize=(18, 5))  # 增加图像宽度，方便显示多个子图
-    plt.subplot(1, 3, 1)  # 1 行 3 列，选择第 1 个子图
+    plt.figure(figsize=(13, 6))  # 增加图像宽度，方便显示多个子图
+    plt.subplot(1, 2, 1)  # 1 行 3 列，选择第 1 个子图
     plt.plot(k_range, inertias, marker="o")
     plt.title("Elbow Method for Optimal K")
     plt.xlabel("Number of Clusters (K)")
@@ -317,7 +313,7 @@ def find_optimal_k_elbow(X, max_k=11, random_state=42):
     plt.xticks(k_range)
     plt.grid(True)
     # 绘制轮廓系数图
-    plt.subplot(1, 3, 2)  # 1 行 3 列，选择第 2 个子图
+    plt.subplot(1, 2, 2)  # 1 行 3 列，选择第 2 个子图
     plt.plot(k_range, silhouette_scores, marker="o")
     plt.title("Silhouette Score for Optimal K")
     plt.xlabel("Number of Clusters (K)")
@@ -325,18 +321,17 @@ def find_optimal_k_elbow(X, max_k=11, random_state=42):
     plt.xticks(k_range)
     plt.grid(True)
     # 绘制 Calinski-Harabasz 指数图
-    plt.subplot(1, 3, 3)  # 1 行 3 列，选择第 3 个子图
-    plt.plot(k_range, calinski_harabasz_scores, marker="o")
-    plt.title("Calinski-Harabasz Index for Optimal K")
-    plt.xlabel("Number of Clusters (K)")
-    plt.ylabel("Calinski-Harabasz Index")
-    plt.xticks(k_range)
-    plt.grid(True)
-    plt.tight_layout()  # 自动调整子图参数，使之填充整个图像区域
+    # plt.subplot(1, 3, 3)  # 1 行 3 列，选择第 3 个子图
+    # plt.plot(k_range, calinski_harabasz_scores, marker="o")
+    # plt.title("Calinski-Harabasz Index for Optimal K")
+    # plt.xlabel("Number of Clusters (K)")
+    # plt.ylabel("Calinski-Harabasz Index")
+    # plt.xticks(k_range)
+    # plt.grid(True)
+    # plt.tight_layout()  # 自动调整子图参数，使之填充整个图像区域
+    plt.savefig(f"./assets/pic/find_k_{supposed_k}.png")
     plt.show()
-    print(
-        "请观察上面的肘部图、轮廓系数图和 Calinski-Harabasz 指数图，综合确定一个合适的 K 值。"
-    )
+    print("请观察上面的肘部图、轮廓系数图和指数图，综合确定一个合适的 K 值。")
     return k_range, inertias, silhouette_scores, calinski_harabasz_scores
 
 
@@ -509,16 +504,19 @@ def plot_clusters_2d(X_reduced, labels, algorithm_name, dr_name, n_clusters_foun
         )  # 使用列表包装颜色以避免警告
 
     plt.title(
-        f"{algorithm_name} Clusters (Projected by {dr_name})\nFound {n_clusters_found} clusters (excl. noise)"
+        f"{algorithm_name} Clusters (Projected by {dr_name})\nFound {n_clusters_found} clusters"
     )
     plt.xlabel(f"{dr_name} Component 1")
     plt.ylabel(f"{dr_name} Component 2")
     plt.legend(loc="best", fontsize="small")
     plt.grid(True, linestyle="--", alpha=0.5)
+    plt.savefig(
+        f"./assets/pic/{algorithm_name} Clusters (Projected by {dr_name})_{n_clusters_found}.png"
+    )
     plt.show()
 
 
-def plot_unsupervised_comparison(results):
+def plot_unsupervised_comparison(results, supposed_k=-1):
     """绘制不同聚类算法性能对比图 (轮廓系数和时间)"""
     # 过滤掉 score 为 -1 (计算失败) 的结果，避免绘图错误
     valid_results = [r for r in results if r["score"] != -1 and r["score"] is not None]
@@ -566,15 +564,16 @@ def plot_unsupervised_comparison(results):
     fig.legend(loc="upper right", bbox_to_anchor=(1, 1), bbox_transform=ax1.transAxes)
     plt.xticks(rotation=15)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig(f"./assets/pic/Clustering Algorithm Comparison_{supposed_k}.png")
     plt.show()
 
 
-def Unsupervised_Learning(data_processed2,k):
+def Unsupervised_Learning(data_processed2, k):
     """执行无监督学习流程：聚类、降维和评估"""
     print("\n=============================")
     print("   开始执行无监督学习任务   ")
     print("=============================")
-    data_processed=data_processed2.copy()
+    data_processed = data_processed2.copy()
     # 1. 准备数据：通常不使用目标变量
     if "GradeClass" in data_processed.columns:
         X_unsupervised = data_processed.drop("GradeClass", axis=1)
@@ -593,7 +592,7 @@ def Unsupervised_Learning(data_processed2,k):
     print(f"用于聚类的数据维度: {X_unsupervised.shape}")
 
     # 2. K-Means: 先用肘部法则确定 K
-    find_optimal_k_elbow(X_unsupervised, max_k=50)
+    find_optimal_k_elbow(X_unsupervised, max_k=26, supposed_k=k)
     # *** 手动选择 K ***
     # 基于上面的肘部图，或者你的领域知识，选择一个 K 值
     # 例如，如果图表在 K=4 或 K=5 处有拐点，或者你知道有 5 个等级
@@ -617,7 +616,7 @@ def Unsupervised_Learning(data_processed2,k):
     # 例如，如果噪声点太多，尝试增大 eps 或 min_samples
     # 如果簇太少或太大，尝试减小 eps
     dbscan_eps = 1.25  # <--- 示例值，需要调整
-    dbscan_min_samples = X_unsupervised.shape[1]+1  # <--- 示例值，需要调整
+    dbscan_min_samples = X_unsupervised.shape[1] + 1  # <--- 示例值，需要调整
     dbscan_results = run_dbscan(
         X_unsupervised, eps=dbscan_eps, min_samples=dbscan_min_samples
     )
@@ -648,7 +647,7 @@ def Unsupervised_Learning(data_processed2,k):
 
     # 7. 绘制性能对比图
     print("\n--- 生成算法性能对比图 ---")
-    plot_unsupervised_comparison(results)
+    plot_unsupervised_comparison(results, supposed_k=k)
 
     print("\n=============================")
     print("   无监督学习任务执行完毕   ")
@@ -659,6 +658,7 @@ def Unsupervised_Learning(data_processed2,k):
 
 if __name__ == "__main__":
     data = description_wash()
+    data.to_csv(WASHED_DATA_PATH, index=False, encoding="utf-8")
     categorical_features_to_encode = [
         "Ethnicity",
         "ParentalEducation",
@@ -666,7 +666,7 @@ if __name__ == "__main__":
     ]
 
     data_processed = preprocess_data(data, categorical_features_to_encode)
-    data1=data_processed.copy()
+    data1 = data_processed.copy()
     data_processed = data_processed.drop("Age", axis=1)
     data_processed = data_processed.drop("Gender", axis=1)
     columns_to_drop = [col for col in data_processed.columns if "Ethnicity" in col]
@@ -678,9 +678,9 @@ if __name__ == "__main__":
     data_processed.to_csv(PROCESSED_DATA_PATH, index=False, encoding="utf-8")
 
     supervised_results = Supervised_Learning(data_processed)
-    unsupervised_results = Unsupervised_Learning(data_processed,24)
+    # unsupervised_results = Unsupervised_Learning(data_processed, 24)
 
-    supervised_results = Supervised_Learning(data1)
-    unsupervised_results = Unsupervised_Learning(data1,6)
+    # supervised_results = Supervised_Learning(data1)
+    # unsupervised_results = Unsupervised_Learning(data1, 2)
 
     print("\n所有流程执行完毕。")
