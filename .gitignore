@@ -4,3 +4,4 @@ src/__pycache__/
 # .code-workspace
 assets/hw/
 assets/pic/
+.venv/
